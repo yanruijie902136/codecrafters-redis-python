@@ -8,6 +8,14 @@ class RespSerializable(abc.ABC):
         raise NotImplementedError
 
 
+class RespArray(RespSerializable):
+    def __init__(self, elements: list[RespSerializable]) -> None:
+        self.elements = elements
+
+    def serialize(self) -> bytes:
+        return f"*{len(self.elements)}\r\n".encode() + b"".join(e.serialize() for e in self.elements)
+
+
 class RespBulkString(RespSerializable):
     def __init__(self, string: Optional[str]) -> None:
         self.string = string

@@ -4,7 +4,7 @@ import asyncio
 from typing import Optional
 
 from .database import RedisDatabase
-from .resp2 import RespBulkString, RespInteger, RespSimpleError, RespSimpleString
+from .resp2 import RespArray, RespBulkString, RespInteger, RespSimpleError, RespSimpleString
 
 
 async def recv_argv(reader: asyncio.StreamReader) -> Optional[list[str]]:
@@ -23,6 +23,8 @@ database = RedisDatabase()
 
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    has_transaction = False
+
     while True:
         argv = await recv_argv(reader)
         if argv is None:
@@ -33,7 +35,11 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
             case "ECHO":
                 response = RespBulkString(argv[1])
             case "EXEC":
-                response = RespSimpleError("ERR EXEC without MULTI")
+                if not has_transaction:
+                    response = RespSimpleError("ERR EXEC without MULTI")
+                else:
+                    has_transaction = False
+                    response = RespArray([])
             case "GET":
                 response = RespBulkString(database.get(argv[1]))
             case "INCR":
@@ -42,6 +48,7 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 else:
                     response = RespInteger(incremented_value)
             case "MULTI":
+                has_transaction = True
                 response = RespSimpleString("OK")
             case "PING":
                 response = RespSimpleString("PONG")
