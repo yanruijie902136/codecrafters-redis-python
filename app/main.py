@@ -1,7 +1,6 @@
 #!/usr/bin/env python3
 
 import asyncio
-import socket
 
 
 async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
