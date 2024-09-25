@@ -26,6 +26,14 @@ class RespInteger(RespSerializable):
         return f":{self.integer}\r\n".encode()
 
 
+class RespSimpleError(RespSerializable):
+    def __init__(self, error_message: str) -> None:
+        self.error_message = error_message
+
+    def serialize(self) -> bytes:
+        return f"-{self.error_message}\r\n".encode()
+
+
 class RespSimpleString(RespSerializable):
     def __init__(self, string: str) -> None:
         self.string = string
