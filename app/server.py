@@ -57,6 +57,13 @@ class RedisServer:
 
     def _exec_argv(self, argv: Argv, client: RedisClient) -> RespSerializable:
         command_name = argv[0].upper()
+
+        if command_name == "DISCARD":
+            if client.transaction is None:
+                return RespSimpleError("ERR DISCARD without MULTI")
+            client.transaction = None
+            return RespSimpleString("OK")
+
         if command_name != "EXEC" and client.transaction is not None:
             client.transaction.append(argv)
             return RespSimpleString("QUEUED")
