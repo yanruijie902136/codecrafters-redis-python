@@ -67,9 +67,8 @@ class RedisServer:
             case "EXEC":
                 if client.transaction is None:
                     return RespSimpleError("ERR EXEC without MULTI")
-                responses = [self._exec_argv(argv2, client) for argv2 in client.transaction]
-                client.transaction = None
-                return RespArray(responses)
+                argvs, client.transaction = client.transaction, None
+                return RespArray([self._exec_argv(argv2, client) for argv2 in argvs])
             case "GET":
                 return RespBulkString(self._database.get(argv[1]))
             case "INCR":
