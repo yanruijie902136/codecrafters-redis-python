@@ -39,6 +39,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                     response = RespSimpleError("ERR value is not an integer or out of range")
                 else:
                     response = RespInteger(incremented_value)
+            case "MULTI":
+                response = RespSimpleString("OK")
             case "PING":
                 response = RespSimpleString("PONG")
             case "SET":
