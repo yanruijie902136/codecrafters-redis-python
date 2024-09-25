@@ -32,6 +32,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
         match command_name := argv[0].upper():
             case "ECHO":
                 response = RespBulkString(argv[1])
+            case "EXEC":
+                response = RespSimpleError("ERR EXEC without MULTI")
             case "GET":
                 response = RespBulkString(database.get(argv[1]))
             case "INCR":
