@@ -18,6 +18,14 @@ class RespBulkString(RespSerializable):
         return f"${len(self.string)}\r\n{self.string}\r\n".encode()
 
 
+class RespInteger(RespSerializable):
+    def __init__(self, integer: int) -> None:
+        self.integer = integer
+
+    def serialize(self) -> bytes:
+        return f":{self.integer}\r\n".encode()
+
+
 class RespSimpleString(RespSerializable):
     def __init__(self, string: str) -> None:
         self.string = string

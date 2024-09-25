@@ -4,7 +4,7 @@ import asyncio
 from typing import Optional
 
 from .database import RedisDatabase
-from .resp2 import RespBulkString, RespSimpleString
+from .resp2 import RespBulkString, RespInteger, RespSimpleString
 
 
 async def recv_argv(reader: asyncio.StreamReader) -> Optional[list[str]]:
@@ -34,6 +34,8 @@ async def handle_client(reader: asyncio.StreamReader, writer: asyncio.StreamWrit
                 response = RespBulkString(argv[1])
             case "GET":
                 response = RespBulkString(database.get(argv[1]))
+            case "INCR":
+                response = RespInteger(database.increment(argv[1]))
             case "PING":
                 response = RespSimpleString("PONG")
             case "SET":

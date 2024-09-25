@@ -4,7 +4,7 @@ import time
 from typing import Optional
 
 
-@dataclasses.dataclass(frozen=True)
+@dataclasses.dataclass
 class RedisDatabaseValue:
     value: str
     expire_timestamp: float
@@ -32,3 +32,14 @@ class RedisDatabase:
         else:
             expire_timestamp = get_current_timestamp() + expire_time
         self._database[key] = RedisDatabaseValue(value, expire_timestamp)
+
+    def increment(self, key: str) -> Optional[int]:
+        if (item := self._database.get(key)) is None:
+            self.set(key, "1")
+            return 1
+        try:
+            incremented_value = int(item.value) + 1
+            item.value = str(incremented_value)
+            return incremented_value
+        except ValueError:
+            return None
