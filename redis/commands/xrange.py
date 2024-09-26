@@ -20,5 +20,9 @@ class XrangeCommand(RedisCommand):
             if self.argv[2] == "-"
             else StreamEntryId.from_string(self.argv[2])
         )
-        end = StreamEntryId.from_string(self.argv[3])
+        end = (
+            None
+            if self.argv[3] == "+"
+            else StreamEntryId.from_string(self.argv[3])
+        )
         return stream.xrange(start, end)

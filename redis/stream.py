@@ -3,6 +3,7 @@ from __future__ import annotations
 import collections
 import dataclasses
 import itertools
+import math
 from typing import Optional
 
 from .resp2 import RespArray, RespBulkString, RespSerializable
@@ -63,11 +64,13 @@ class RedisStream:
 
     def xrange(
         self,
-        start: Optional[StreamEntryId],
-        end: StreamEntryId,
+        start: Optional[StreamEntryId] = None,
+        end: Optional[StreamEntryId] = None,
     ) -> RespArray:
         if start is None:
             start = StreamEntryId(0, 0)
+        if end is None:
+            end = StreamEntryId(math.inf, math.inf)
         return RespArray([
             entry for entry in self._entries if start <= entry.entry_id <= end
         ])
