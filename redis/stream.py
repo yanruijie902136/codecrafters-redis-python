@@ -74,3 +74,8 @@ class RedisStream:
         return RespArray([
             entry for entry in self._entries if start <= entry.entry_id <= end
         ])
+
+    def xread(self, exclusive_start: StreamEntryId) -> RespArray:
+        start = exclusive_start
+        start.seq_number += 1
+        return self.xrange(start)

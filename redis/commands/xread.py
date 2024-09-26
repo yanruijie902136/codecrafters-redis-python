@@ -12,14 +12,19 @@ if TYPE_CHECKING:
 
 class XreadCommand(RedisCommand):
     def execute(self, client: RedisClient) -> RespSerializable:
-        stream_key = self.argv[2]
-        stream = client.server.database.get(stream_key)
+        num_streams = (len(self.argv) - 2) // 2
+        stream_keys = self.argv[2:num_streams+2]
+        starts = [
+            StreamEntryId.from_string(s) for s in self.argv[num_streams+2:]
+        ]
 
-        start = StreamEntryId.from_string(self.argv[3])
-        start.seq_number += 1
-        return RespArray([
-            RespArray([
-                RespBulkString(stream_key),
-                stream.xrange(start),
-            ])
-        ])
+        xreads = []
+        for stream_key, start in zip(stream_keys, starts):
+            stream = client.server.database.get(stream_key)
+            xreads.append(
+                RespArray([
+                    RespBulkString(stream_key),
+                    stream.xread(start),
+                ])
+            )
+        return RespArray(xreads)
