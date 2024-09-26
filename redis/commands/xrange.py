@@ -15,6 +15,10 @@ class XrangeCommand(RedisCommand):
     def execute(self, client: RedisClient) -> RespSerializable:
         stream_key = self.argv[1]
         stream = client.server.database.get(stream_key)
-        start = StreamEntryId.from_string(self.argv[2])
+        start = (
+            None
+            if self.argv[2] == "-"
+            else StreamEntryId.from_string(self.argv[2])
+        )
         end = StreamEntryId.from_string(self.argv[3])
         return stream.xrange(start, end)
