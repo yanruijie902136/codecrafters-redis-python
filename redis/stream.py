@@ -3,6 +3,8 @@ from __future__ import annotations
 import collections
 import dataclasses
 
+from .utils import get_current_timestamp
+
 
 auto_seq_numbers = collections.defaultdict(int)
 
@@ -14,6 +16,9 @@ class StreamEntryId:
 
     @classmethod
     def from_string(cls, string: str) -> StreamEntryId:
+        if string == "*":
+            return StreamEntryId(int(get_current_timestamp()), 0)
+
         msec, seq_number = string.split("-")
         msec = int(msec)
         if seq_number == "*":
