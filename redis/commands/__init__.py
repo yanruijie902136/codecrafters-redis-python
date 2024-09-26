@@ -11,6 +11,7 @@ from .set import SetCommand
 from .type import TypeCommand
 from .xadd import XaddCommand
 from .xrange import XrangeCommand
+from .xread import XreadCommand
 
 
 def argv_to_command(argv: list[str]) -> RedisCommand:
@@ -37,5 +38,7 @@ def argv_to_command(argv: list[str]) -> RedisCommand:
             return XaddCommand(argv)
         case "XRANGE":
             return XrangeCommand(argv)
+        case "XREAD":
+            return XreadCommand(argv)
 
     raise ValueError(f"Unknown command: {command_name}")
