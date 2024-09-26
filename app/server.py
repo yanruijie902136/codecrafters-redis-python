@@ -93,5 +93,8 @@ class RedisServer:
                 else:
                     self._database.set(argv[1], argv[2], expire_time=float(argv[-1]))
                 return RespSimpleString("OK")
+            case "TYPE":
+                value = self._database.get(argv[1])
+                return RespSimpleString("none" if value is None else "string")
             case _:
                 raise ValueError(f"Unknown command: {command_name}")
