@@ -1,6 +1,10 @@
 from __future__ import annotations
 
+import collections
 import dataclasses
+
+
+auto_seq_numbers = collections.defaultdict(int)
 
 
 @dataclasses.dataclass(order=True)
@@ -10,7 +14,15 @@ class StreamEntryId:
 
     @classmethod
     def from_string(cls, string: str) -> StreamEntryId:
-        msec, seq_number = map(int, string.split("-"))
+        msec, seq_number = string.split("-")
+        msec = int(msec)
+        if seq_number == "*":
+            auto_seq_numbers[msec] += 1
+            seq_number = auto_seq_numbers[msec]
+            if msec > 0:
+                seq_number -= 1
+        else:
+            seq_number = int(seq_number)
         return StreamEntryId(msec, seq_number)
 
     def __str__(self) -> str:
