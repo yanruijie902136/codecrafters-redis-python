@@ -2,7 +2,9 @@ from __future__ import annotations
 
 import collections
 import dataclasses
+import itertools
 
+from .resp2 import RespArray, RespBulkString, RespSerializable
 from .utils import get_current_timestamp
 
 
@@ -35,9 +37,17 @@ class StreamEntryId:
 
 
 @dataclasses.dataclass
-class StreamEntry:
+class StreamEntry(RespSerializable):
     entry_id: StreamEntryId
     data: dict[str, str]
+
+    def serialize(self) -> bytes:
+        return RespArray([
+            RespBulkString(str(self.entry_id)),
+            RespArray([
+                RespBulkString(s) for s in itertools.chain(*self.data.items())
+            ]),
+        ]).serialize()
 
 
 class RedisStream:
@@ -49,3 +59,8 @@ class RedisStream:
             return False
         self._entries.append(StreamEntry(entry_id, data))
         return True
+
+    def xrange(self, start: StreamEntryId, end: StreamEntryId) -> RespArray:
+        return RespArray([
+            entry for entry in self._entries if start <= entry.entry_id <= end
+        ])

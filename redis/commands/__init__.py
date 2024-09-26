@@ -10,6 +10,7 @@ from .ping import PingCommand
 from .set import SetCommand
 from .type import TypeCommand
 from .xadd import XaddCommand
+from .xrange import XrangeCommand
 
 
 def argv_to_command(argv: list[str]) -> RedisCommand:
@@ -34,5 +35,7 @@ def argv_to_command(argv: list[str]) -> RedisCommand:
             return TypeCommand(argv)
         case "XADD":
             return XaddCommand(argv)
+        case "XRANGE":
+            return XrangeCommand(argv)
 
     raise ValueError(f"Unknown command: {command_name}")
