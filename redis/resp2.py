@@ -13,7 +13,9 @@ class RespArray(RespSerializable):
         self.elements = elements
 
     def serialize(self) -> bytes:
-        return f"*{len(self.elements)}\r\n".encode() + b"".join(e.serialize() for e in self.elements)
+        return f"*{len(self.elements)}\r\n".encode() + b"".join(
+            e.serialize() for e in self.elements
+        )
 
 
 class RespBulkString(RespSerializable):

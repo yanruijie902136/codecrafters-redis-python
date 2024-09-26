@@ -1,0 +1,2 @@
+class RedisStream:
+    pass

@@ -1,8 +1,6 @@
-#!/usr/bin/env python3
-
 import asyncio
 
-from .server import RedisServer
+from redis import RedisServer
 
 
 def main() -> None:

@@ -8,4 +8,4 @@
 
 set -e # Exit on failure
 
-exec python3 -m app.main "$@"
+exec python3 main.py "$@"
