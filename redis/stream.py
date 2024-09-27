@@ -15,6 +15,12 @@ class RedisStreamEntryId:
     milliseconds: int
     sequence_number: int
 
+    def __add__(self, other: RedisStreamEntryId) -> RedisStreamEntryId:
+        return RedisStreamEntryId(
+            self.milliseconds + other.milliseconds,
+            self.sequence_number + other.sequence_number,
+        )
+
     def __str__(self) -> str:
         return f"{self.milliseconds}-{self.sequence_number}"
 
@@ -85,7 +91,7 @@ class RedisStream:
         - The provided entry ID is "0-0", which is disallowed.
         - The provided entry ID isn't greater than the most recently added ID.
         """
-        if entry_id <= self._most_recent_entry_id():
+        if entry_id <= self.most_recent_entry_id():
             return False
         self._entries[entry_id] = RedisStreamEntry(entry_id, kv_pairs)
         self._seq_lookup[entry_id.milliseconds] = entry_id.sequence_number
@@ -103,16 +109,14 @@ class RedisStream:
         if min_id is None:
             min_id = RedisStreamEntryId(0, 0)
         if max_id is None:
-            max_id = self._most_recent_entry_id()
-            max_id = RedisStreamEntryId(max_id.milliseconds, MAX_SEQ_NUM)
+            max_id = self.most_recent_entry_id() + RedisStreamEntryId(0, 1)
         return [
             entry for entry_id, entry in self._entries.items() if min_id <= entry_id <= max_id
         ]
 
     def xread(self, start_id: RedisStreamEntryId) -> list[RedisStreamEntry]:
-        start_id = RedisStreamEntryId(start_id.milliseconds, start_id.sequence_number + 1)
-        return self.xrange(start_id, None)
+        return self.xrange(start_id + RedisStreamEntryId(0, 1), None)
 
-    def _most_recent_entry_id(self) -> RedisStreamEntryId:
+    def most_recent_entry_id(self) -> RedisStreamEntryId:
         """Get the most recently added entry ID."""
         return next(reversed(self._entries)) if self._entries else RedisStreamEntryId(0, 0)

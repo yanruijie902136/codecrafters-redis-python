@@ -176,7 +176,14 @@ class XreadCommand(RedisCommand):
         i = self._argv.index("streams") + 1
         num_streams = (len(self._argv) - i) // 2
         stream_keys = self._argv[i:i+num_streams]
-        start_id_strs = self._argv[i+num_streams:]
+        streams = [connection.server.database.get(stream_key) for stream_key in stream_keys]
+        start_ids = []
+        for stream, start_id_str in zip(streams, self._argv[i+num_streams:]):
+            if start_id_str == "$":
+                start_id = stream.most_recent_entry_id()
+            else:
+                start_id = stream.string_to_entry_id(start_id_str)
+            start_ids.append(start_id)
 
         if self._argv[1] == "block":
             block_time = int(self._argv[2])
@@ -190,13 +197,9 @@ class XreadCommand(RedisCommand):
         while True:
             array = []
             has_data = False
-            for stream_key, start_id_str in zip(stream_keys, start_id_strs):
-                stream = connection.server.database.get(stream_key)
-                start_id = stream.string_to_entry_id(start_id_str)
-
+            for stream, stream_key, start_id in zip(streams, stream_keys, start_ids):
                 if entries := stream.xread(start_id):
                     has_data = True
-
                 array.append(RespArray([RespBulkString(stream_key), RespArray(entries)]))
 
             if has_data:
