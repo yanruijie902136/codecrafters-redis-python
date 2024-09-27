@@ -1,13 +1,15 @@
 from __future__ import annotations
 import asyncio
+from typing import Optional
 
 from .connection import RedisConnection
 from .database import RedisDatabase
 
 
 class RedisServer:
-    def __init__(self, host="localhost", port=6379) -> None:
+    def __init__(self, host="localhost", port=6379, **kwargs) -> None:
         self._host, self._port = host, port
+        self._config_params: dict[str, Optional[str]] = kwargs
         self._database = RedisDatabase()
 
     async def start(self) -> None:
@@ -17,6 +19,9 @@ class RedisServer:
         )
         async with server:
             await server.serve_forever()
+
+    def get_config_param(self, name: str) -> Optional[str]:
+        return self._config_params.get(name)
 
     async def _process_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter

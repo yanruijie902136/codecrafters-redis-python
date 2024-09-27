@@ -43,6 +43,13 @@ class RedisCommand(abc.ABC):
         raise NotImplementedError
 
 
+class ConfigCommand(RedisCommand):
+    async def _execute(self, connection: RedisConnection) -> RespSerializable:
+        name = self._argv[2]
+        value = connection.server.get_config_param(name)
+        return RespArray([RespBulkString(name), RespBulkString(value)])
+
+
 class DiscardCommand(RedisCommand):
     @override
     def _should_be_queued(self, connection: RedisConnection) -> bool:
@@ -212,6 +219,8 @@ class XreadCommand(RedisCommand):
 
 def argv_to_command(argv: list[str]) -> RedisCommand:
     match command_name := argv[0].upper():
+        case "CONFIG":
+            return ConfigCommand(argv)
         case "DISCARD":
             return DiscardCommand(argv)
         case "ECHO":
