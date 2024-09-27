@@ -132,7 +132,9 @@ class PingCommand(RedisCommand):
 
 class PsyncCommand(RedisCommand):
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
-        return RespBulkString(None)
+        server = connection.server
+        server.mark_as_replica(connection)
+        return RespSimpleString(f"+FULLRESYNC {server.master_replid} 0")
 
 
 class ReplconfCommand(RedisCommand):
@@ -269,6 +271,8 @@ def argv_to_command(argv: list[str]) -> RedisCommand:
             return MultiCommand(argv)
         case "PING":
             return PingCommand(argv)
+        case "PSYNC":
+            return PsyncCommand(argv)
         case "REPLCONF":
             return ReplconfCommand(argv)
         case "SET":
