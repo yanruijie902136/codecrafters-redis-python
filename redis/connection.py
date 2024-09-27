@@ -3,7 +3,7 @@ import asyncio
 import enum
 from typing import TYPE_CHECKING, Optional
 
-from .commands import PingCommand, ReplconfCommand, argv_to_command
+from .commands import PingCommand, ReplconfCommand, PsyncCommand, argv_to_command
 from .transaction import RedisTransaction
 
 if TYPE_CHECKING:
@@ -74,6 +74,10 @@ class RedisConnection:
         await self._reader.readuntil(b"\r\n")
 
         command = ReplconfCommand(["REPLCONF", "capa", "psync2"])
+        await self._send(command.serialize())
+        await self._reader.readuntil(b"\r\n")
+
+        command = PsyncCommand(["PSYNC", "?", "-1"])
         await self._send(command.serialize())
         await self._reader.readuntil(b"\r\n")
 

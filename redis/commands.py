@@ -130,6 +130,11 @@ class PingCommand(RedisCommand):
         return RespSimpleString("PONG")
 
 
+class PsyncCommand(RedisCommand):
+    async def _execute(self, connection: RedisConnection) -> RespSerializable:
+        return RespBulkString(None)
+
+
 class ReplconfCommand(RedisCommand):
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
         return RespBulkString(None)
