@@ -94,6 +94,11 @@ class IncrCommand(RedisCommand):
         return RespSimpleError("ERR value is not an integer or out of range")
 
 
+class InfoCommand(RedisCommand):
+    async def _execute(self, connection: RedisConnection) -> RespSerializable:
+        return RespBulkString("role:master")
+
+
 class KeysCommand(RedisCommand):
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
         keys = connection.server.database.keys()
@@ -237,6 +242,8 @@ def argv_to_command(argv: list[str]) -> RedisCommand:
             return GetCommand(argv)
         case "INCR":
             return IncrCommand(argv)
+        case "INFO":
+            return InfoCommand(argv)
         case "KEYS":
             return KeysCommand(argv)
         case "MULTI":
