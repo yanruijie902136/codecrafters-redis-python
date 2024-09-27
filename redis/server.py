@@ -3,7 +3,7 @@ import asyncio
 import os
 from typing import Literal, Optional
 
-from .connection import RedisConnection
+from .connection import ConnectionType, RedisConnection
 from .database import RedisDatabase, RedisDatabaseLoader
 
 
@@ -17,17 +17,36 @@ class RedisServer:
         self._address = address
         self._master_address = master_address
 
+        self._master: Optional[RedisConnection] = None
+        self._replicas: set[RedisConnection] = set()
+
         self._config_params: dict[str, Optional[str]] = kwargs
         self._database = self._try_load_database()
 
     async def start(self) -> None:
         """Start running the server."""
         server = await asyncio.start_server(self._process_client, *self._address, reuse_port=True)
-        async with server:
-            await server.serve_forever()
+
+        if self._master_address is not None:
+            master_reader, master_writer = await asyncio.open_connection(*self._master_address)
+            self._master = RedisConnection(master_reader, master_writer, server=self)
+
+        async with server, asyncio.TaskGroup() as tg:
+            tg.create_task(server.serve_forever())
+            if self._master is not None:
+                tg.create_task(self._process_connection(self._master))
 
     def get_config_param(self, name: str) -> Optional[str]:
+        """Get the server's configuration parameter."""
         return self._config_params.get(name)
+
+    def get_connection_type(self, connection: RedisConnection) -> ConnectionType:
+        """Get a connection's type (client, master or replica)."""
+        if connection is self._master:
+            return ConnectionType.MASTER
+        elif connection in self._replicas:
+            return ConnectionType.REPLICA
+        return ConnectionType.CLIENT
 
     async def _process_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
@@ -38,9 +57,12 @@ class RedisServer:
         is established. The `reader` and `writer` are used to communicate with
         the connection.
         """
-        client = RedisConnection(reader, writer, server=self)
-        await client.process()
-        await client.close()
+        await self._process_connection(RedisConnection(reader, writer, server=self))
+
+    async def _process_connection(self, connection: RedisConnection) -> None:
+        """Process a connection."""
+        await connection.process()
+        await connection.close()
 
     def _try_load_database(self) -> RedisDatabase:
         """

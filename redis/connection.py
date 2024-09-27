@@ -1,13 +1,17 @@
 from __future__ import annotations
 import asyncio
+import enum
 from typing import TYPE_CHECKING, Optional
 
-from .commands import argv_to_command
+from .commands import PingCommand, argv_to_command
 from .transaction import RedisTransaction
 
 if TYPE_CHECKING:
     from .commands import RedisCommand
     from .server import RedisServer
+
+
+ConnectionType = enum.Enum("ConnectionType", "CLIENT MASTER REPLICA")
 
 
 class RedisConnection:
@@ -24,12 +28,14 @@ class RedisConnection:
 
     async def process(self) -> None:
         """Process the connection."""
+        if self.type is ConnectionType.MASTER:
+            await self._handshake()
+
         while True:
             if (command := await self._recv_command()) is None:
                 return
             response = await command.execute(connection=self)
-            self._writer.write(response.serialize())
-            await self._writer.drain()
+            await self._send(response.serialize())
 
     async def close(self) -> None:
         """Close the connection."""
@@ -51,6 +57,17 @@ class RedisConnection:
         except asyncio.IncompleteReadError:
             return None
 
+    async def _send(self, data: bytes) -> None:
+        """Send data to the connection."""
+        self._writer.write(data)
+        await self._writer.drain()
+
+    async def _handshake(self) -> None:
+        """Handshake with the master server."""
+        command = PingCommand(["PING"])
+        await self._send(command.serialize())
+        await self._reader.readuntil(b"\r\n")
+
     @property
     def server(self) -> RedisServer:
         """The server processing this connection."""
@@ -60,3 +77,8 @@ class RedisConnection:
     def transaction(self) -> RedisTransaction:
         """The transaction owned by this connection."""
         return self._transaction
+
+    @property
+    def type(self) -> ConnectionType:
+        """Type of connection (client, master, or replica)."""
+        return self._server.get_connection_type(connection=self)

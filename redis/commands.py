@@ -19,9 +19,12 @@ if TYPE_CHECKING:
     from .connection import RedisConnection
 
 
-class RedisCommand(abc.ABC):
+class RedisCommand(RespSerializable, abc.ABC):
     def __init__(self, argv: list[str]) -> None:
         self._argv = argv
+
+    def serialize(self) -> bytes:
+        return RespArray([RespBulkString(arg) for arg in self._argv]).serialize()
 
     async def execute(self, connection: RedisConnection) -> RespSerializable:
         """

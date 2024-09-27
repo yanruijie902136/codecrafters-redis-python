@@ -6,7 +6,7 @@ from typing import Optional
 class RespSerializable(abc.ABC):
     @abc.abstractmethod
     def serialize(self) -> bytes:
-        """"Serialize the object under Redis serialization protocol (RESP)."""
+        """Serialize the object under Redis serialization protocol (RESP)."""
         raise NotImplementedError
 
 
