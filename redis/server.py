@@ -1,6 +1,7 @@
+from __future__ import annotations
 import asyncio
 
-from .client import RedisClient
+from .connection import RedisConnection
 from .database import RedisDatabase
 
 
@@ -10,21 +11,27 @@ class RedisServer:
         self._database = RedisDatabase()
 
     async def start(self) -> None:
+        """Start running the server."""
         server = await asyncio.start_server(
-            self._handle_client, self._host, self._port, reuse_port=True
+            self._process_client, self._host, self._port, reuse_port=True
         )
         async with server:
             await server.serve_forever()
 
-    async def _handle_client(
-        self,
-        reader: asyncio.StreamReader,
-        writer: asyncio.StreamWriter,
+    async def _process_client(
+        self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ) -> None:
-        client = RedisClient(reader, writer, server=self)
+        """
+        Process a client connection. This method is passed as a parameter of
+        `asyncio.start_server()`, and is called whenever a new client connection
+        is established. The `reader` and `writer` are used to communicate with
+        the connection.
+        """
+        client = RedisConnection(reader, writer, server=self)
         await client.process()
         await client.close()
 
     @property
     def database(self) -> RedisDatabase:
+        """The database owned by this server."""
         return self._database
