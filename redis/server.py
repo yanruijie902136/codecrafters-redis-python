@@ -62,5 +62,18 @@ class RedisServer:
 
     @property
     def role(self) -> Literal["master", "slave"]:
-        """The server's role."""
+        """
+        The server's role. Value is "master" if the server is replica of no
+        one, or "slave" if the server is a replica of some master server.
+        """
         return "master" if self._master_address is None else "slave"
+
+    @property
+    def master_replid(self) -> str:
+        """The replication ID of the server."""
+        return "8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb"
+
+    @property
+    def master_repl_offset(self) -> int:
+        """The server's current replication offset"""
+        return 0

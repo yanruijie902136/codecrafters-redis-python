@@ -96,7 +96,13 @@ class IncrCommand(RedisCommand):
 
 class InfoCommand(RedisCommand):
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
-        return RespBulkString(f"role:{connection.server.role}")
+        server = connection.server
+        information = (
+            f"role:{server.role}\n"
+            f"master_replid:{server.master_replid}\n"
+            f"master_repl_offset:{server.master_repl_offset}"
+        )
+        return RespBulkString(information)
 
 
 class KeysCommand(RedisCommand):
