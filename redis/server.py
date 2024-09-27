@@ -48,6 +48,10 @@ class RedisServer:
             return ConnectionType.REPLICA
         return ConnectionType.CLIENT
 
+    def mark_as_replica(self, connection: RedisConnection) -> None:
+        """Mark a connection as a replica server."""
+        self._replicas.add(connection)
+
     async def _process_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
     ) -> None:
@@ -62,6 +66,7 @@ class RedisServer:
     async def _process_connection(self, connection: RedisConnection) -> None:
         """Process a connection."""
         await connection.process()
+        self._replicas.discard(connection)
         await connection.close()
 
     def _try_load_database(self) -> RedisDatabase:
