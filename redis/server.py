@@ -1,16 +1,17 @@
 from __future__ import annotations
 import asyncio
+import os
 from typing import Optional
 
 from .connection import RedisConnection
-from .database import RedisDatabase
+from .database import RedisDatabase, RedisDatabaseLoader
 
 
 class RedisServer:
     def __init__(self, host="localhost", port=6379, **kwargs) -> None:
         self._host, self._port = host, port
         self._config_params: dict[str, Optional[str]] = kwargs
-        self._database = RedisDatabase()
+        self._database = self._try_load_database()
 
     async def start(self) -> None:
         """Start running the server."""
@@ -35,6 +36,19 @@ class RedisServer:
         client = RedisConnection(reader, writer, server=self)
         await client.process()
         await client.close()
+
+    def _try_load_database(self) -> RedisDatabase:
+        """
+        Try to load the database from an existing RDB file. If the operation
+        fails, the server starts with an empty database.
+        """
+        try:
+            rdb_filepath = os.path.join(
+                self._config_params["dir"], self._config_params["dbfilename"]
+            )
+            return RedisDatabaseLoader().load(rdb_filepath)
+        except:
+            return RedisDatabase()
 
     @property
     def database(self) -> RedisDatabase:
