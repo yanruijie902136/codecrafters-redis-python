@@ -78,6 +78,11 @@ class RedisServer:
             return RedisDatabase()
 
     @property
+    def address(self) -> Address:
+        """The server's address"""
+        return self._address
+
+    @property
     def database(self) -> RedisDatabase:
         """The database owned by this server."""
         return self._database

@@ -3,7 +3,7 @@ import asyncio
 import enum
 from typing import TYPE_CHECKING, Optional
 
-from .commands import PingCommand, argv_to_command
+from .commands import PingCommand, ReplconfCommand, argv_to_command
 from .transaction import RedisTransaction
 
 if TYPE_CHECKING:
@@ -65,6 +65,15 @@ class RedisConnection:
     async def _handshake(self) -> None:
         """Handshake with the master server."""
         command = PingCommand(["PING"])
+        await self._send(command.serialize())
+        await self._reader.readuntil(b"\r\n")
+
+        _, server_port = self._server.address
+        command = ReplconfCommand(["REPLCONF", "listening-port", str(server_port)])
+        await self._send(command.serialize())
+        await self._reader.readuntil(b"\r\n")
+
+        command = ReplconfCommand(["REPLCONF", "capa", "psync2"])
         await self._send(command.serialize())
         await self._reader.readuntil(b"\r\n")
 

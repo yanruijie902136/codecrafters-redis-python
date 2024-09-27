@@ -130,6 +130,11 @@ class PingCommand(RedisCommand):
         return RespSimpleString("PONG")
 
 
+class ReplconfCommand(RedisCommand):
+    async def _execute(self, connection: RedisConnection) -> RespSerializable:
+        return RespBulkString(None)
+
+
 class SetCommand(RedisCommand):
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
         key, value = self._argv[1], self._argv[2]
