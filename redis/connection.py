@@ -35,13 +35,13 @@ class RedisConnection:
             if (command := await self._recv_command()) is None:
                 return
             response = await command.execute(connection=self)
-            await self._send(response.serialize())
+            await self.send(response.serialize())
 
             if type(command) is PsyncCommand:
                 rdb_data = self._server.database.dump()
-                await self._send(f"${len(rdb_data)}\r\n".encode() + rdb_data)
+                await self.send(f"${len(rdb_data)}\r\n".encode() + rdb_data)
 
-    async def _send(self, data: bytes) -> None:
+    async def send(self, data: bytes) -> None:
         """Send data to the connection."""
         self._writer.write(data)
         await self._writer.drain()
@@ -69,20 +69,20 @@ class RedisConnection:
     async def _handshake(self) -> None:
         """Handshake with the master server."""
         command = PingCommand(["PING"])
-        await self._send(command.serialize())
+        await self.send(command.serialize())
         await self._reader.readuntil(b"\r\n")
 
         _, server_port = self._server.address
         command = ReplconfCommand(["REPLCONF", "listening-port", str(server_port)])
-        await self._send(command.serialize())
+        await self.send(command.serialize())
         await self._reader.readuntil(b"\r\n")
 
         command = ReplconfCommand(["REPLCONF", "capa", "psync2"])
-        await self._send(command.serialize())
+        await self.send(command.serialize())
         await self._reader.readuntil(b"\r\n")
 
         command = PsyncCommand(["PSYNC", "?", "-1"])
-        await self._send(command.serialize())
+        await self.send(command.serialize())
         await self._reader.readuntil(b"\r\n")
 
     @property

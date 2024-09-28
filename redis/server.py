@@ -1,10 +1,13 @@
 from __future__ import annotations
 import asyncio
 import os
-from typing import Literal, Optional
+from typing import TYPE_CHECKING, Literal, Optional
 
 from .connection import ConnectionType, RedisConnection
 from .database import RedisDatabase, RedisDatabaseLoader
+
+if TYPE_CHECKING:
+    from .commands import RedisCommand
 
 
 Address = tuple[str, int]
@@ -51,6 +54,14 @@ class RedisServer:
     def mark_as_replica(self, connection: RedisConnection) -> None:
         """Mark a connection as a replica server."""
         self._replicas.add(connection)
+
+    async def propogate_command(self, command: RedisCommand) -> None:
+        """Propogate a command to the replicas."""
+        if not self._replicas:
+            return
+        data = command.serialize()
+        for replica in self._replicas:
+            await replica.send(data)
 
     async def _process_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter

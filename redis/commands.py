@@ -33,12 +33,22 @@ class RedisCommand(RespSerializable, abc.ABC):
         """
         if self._should_be_queued(connection):
             connection.transaction.queue(command=self)
-            return RespSimpleString("QUEUED")
-        return await self._execute(connection)
+            response = RespSimpleString("QUEUED")
+        else:
+            response = await self._execute(connection)
+
+        if self._should_be_propogated():
+            await connection.server.propogate_command(command=self)
+
+        return response
 
     def _should_be_queued(self, connection: RedisConnection) -> bool:
         """Whether the command should be queued."""
         return connection.transaction.activated
+
+    def _should_be_propogated(self) -> bool:
+        """Whether the command should be propogated."""
+        return False
 
     @abc.abstractmethod
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
@@ -143,6 +153,10 @@ class ReplconfCommand(RedisCommand):
 
 
 class SetCommand(RedisCommand):
+    @override
+    def _should_be_propogated(self) -> bool:
+        return True
+
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
         key, value = self._argv[1], self._argv[2]
         database = connection.server.database
