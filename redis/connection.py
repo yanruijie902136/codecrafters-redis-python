@@ -35,7 +35,8 @@ class RedisConnection:
             if (command := await self._recv_command()) is None:
                 return
             response = await command.execute(connection=self)
-            await self.send(response.serialize())
+            if response is not None:
+                await self.send(response.serialize())
 
             if type(command) is PsyncCommand:
                 rdb_data = self._server.database.dump()
@@ -84,6 +85,10 @@ class RedisConnection:
         command = PsyncCommand(["PSYNC", "?", "-1"])
         await self.send(command.serialize())
         await self._reader.readuntil(b"\r\n")
+
+        encoded_filesize = await self._reader.readuntil(b"\r\n")
+        filesize = int(encoded_filesize[1:-2].decode())
+        await self._reader.readexactly(filesize)
 
     @property
     def server(self) -> RedisServer:

@@ -2,7 +2,7 @@ from __future__ import annotations
 import abc
 import asyncio
 import itertools
-from typing import TYPE_CHECKING, override
+from typing import TYPE_CHECKING, Optional, override
 
 from .resp import (
     RespArray,
@@ -26,7 +26,7 @@ class RedisCommand(RespSerializable, abc.ABC):
     def serialize(self) -> bytes:
         return RespArray([RespBulkString(arg) for arg in self._argv]).serialize()
 
-    async def execute(self, connection: RedisConnection) -> RespSerializable:
+    async def execute(self, connection: RedisConnection) -> Optional[RespSerializable]:
         """
         Execute the command and return the response. If the command should be
         queued instead, queue it and return "QUEUED" encoded as a simple string.
@@ -40,7 +40,7 @@ class RedisCommand(RespSerializable, abc.ABC):
         if self._should_be_propogated():
             await connection.server.propogate_command(command=self)
 
-        return response
+        return response if self._has_response(connection) else None
 
     def _should_be_queued(self, connection: RedisConnection) -> bool:
         """Whether the command should be queued."""
@@ -49,6 +49,11 @@ class RedisCommand(RespSerializable, abc.ABC):
     def _should_be_propogated(self) -> bool:
         """Whether the command should be propogated."""
         return False
+
+    def _has_response(self, connection: RedisConnection) -> bool:
+        """Whether a response should be sent to connection."""
+        from .connection import ConnectionType
+        return connection.type is not ConnectionType.MASTER
 
     @abc.abstractmethod
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
