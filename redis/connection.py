@@ -26,6 +26,9 @@ class RedisConnection:
         self._server = server
         self._transaction = RedisTransaction(connection=self)
 
+        self.propogate_offset = 0
+        self.ack_offset = 0
+
     async def process(self) -> None:
         """Process the connection."""
         if self.type is ConnectionType.MASTER:

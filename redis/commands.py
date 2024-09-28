@@ -43,7 +43,8 @@ class RedisCommand(RespSerializable, abc.ABC):
             connection.server.master_repl_offset += len(self.serialize())
 
         if self._should_be_propogated():
-            await connection.server.propogate_command(command=self)
+            await connection.server.send_command_to_replicas(command=self)
+            connection.propogate_offset += len(self.serialize())
 
         return response if self._has_response(connection) else None
 
@@ -161,15 +162,16 @@ class PsyncCommand(RedisCommand):
 class ReplconfCommand(RedisCommand):
     @override
     def _has_response(self, connection: RedisConnection) -> bool:
-        return True
+        return self._argv[1] != "ACK"
 
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
         server = connection.server
         match self._argv[1]:
             case "GETACK":
                 return ReplconfCommand(["REPLCONF", "ACK", str(server.master_repl_offset)])
-            case _:
-                return RespSimpleString("OK")
+            case "ACK":
+                connection.ack_offset += int(self._argv[2])
+        return RespSimpleString("OK")
 
 
 class SetCommand(RedisCommand):
@@ -202,7 +204,24 @@ class TypeCommand(RedisCommand):
 
 class WaitCommand(RedisCommand):
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
-        return RespInteger(0)
+        server = connection.server
+        propogate_offset = connection.propogate_offset
+
+        if propogate_offset > 0:
+            getack_command = ReplconfCommand(["REPLCONF", "GETACK", "*"])
+            await connection.server.send_command_to_replicas(getack_command)
+
+        required_num_replicas = int(self._argv[1])
+        timeout_timestamp = get_current_timestamp() + int(self._argv[2])
+
+        num_acked_replicas = server.get_num_acked_replicas(propogate_offset)
+        while get_current_timestamp() < timeout_timestamp:
+            if num_acked_replicas >= required_num_replicas:
+                break
+            await asyncio.sleep(0)
+            num_acked_replicas = server.get_num_acked_replicas(propogate_offset)
+
+        return RespInteger(num_acked_replicas)
 
 
 class XaddCommand(RedisCommand):

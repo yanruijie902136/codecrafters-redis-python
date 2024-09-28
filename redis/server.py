@@ -57,13 +57,17 @@ class RedisServer:
         """Mark a connection as a replica server."""
         self._replicas.add(connection)
 
-    async def propogate_command(self, command: RedisCommand) -> None:
-        """Propogate a command to the replicas."""
+    async def send_command_to_replicas(self, command: RedisCommand) -> None:
+        """Send a command to the replicas."""
         if not self._replicas:
             return
         data = command.serialize()
         for replica in self._replicas:
             await replica.send(data)
+
+    def get_num_acked_replicas(self, target_offset: int) -> int:
+        """Get the number of acknowledged replicas."""
+        return sum(replica.ack_offset >= target_offset for replica in self._replicas)
 
     async def _process_client(
         self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter
