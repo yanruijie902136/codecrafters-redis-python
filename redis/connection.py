@@ -37,6 +37,15 @@ class RedisConnection:
             response = await command.execute(connection=self)
             await self._send(response.serialize())
 
+            if type(command) is PsyncCommand:
+                rdb_data = self._server.database.dump()
+                await self._send(f"${len(rdb_data)}\r\n".encode() + rdb_data)
+
+    async def _send(self, data: bytes) -> None:
+        """Send data to the connection."""
+        self._writer.write(data)
+        await self._writer.drain()
+
     async def close(self) -> None:
         """Close the connection."""
         self._writer.close()
@@ -56,11 +65,6 @@ class RedisConnection:
             return argv_to_command(argv)
         except asyncio.IncompleteReadError:
             return None
-
-    async def _send(self, data: bytes) -> None:
-        """Send data to the connection."""
-        self._writer.write(data)
-        await self._writer.drain()
 
     async def _handshake(self) -> None:
         """Handshake with the master server."""
