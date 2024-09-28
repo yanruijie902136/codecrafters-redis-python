@@ -153,8 +153,16 @@ class PsyncCommand(RedisCommand):
 
 
 class ReplconfCommand(RedisCommand):
+    @override
+    def _has_response(self, connection: RedisConnection) -> bool:
+        return True
+
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
-        return RespSimpleString("OK")
+        match self._argv[1]:
+            case "GETACK":
+                return ReplconfCommand(["REPLCONF", "ACK", "0"])
+            case _:
+                return RespSimpleString("OK")
 
 
 class SetCommand(RedisCommand):
