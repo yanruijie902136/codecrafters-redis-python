@@ -31,11 +31,16 @@ class RedisCommand(RespSerializable, abc.ABC):
         Execute the command and return the response. If the command should be
         queued instead, queue it and return "QUEUED" encoded as a simple string.
         """
+        from .connection import ConnectionType
+
         if self._should_be_queued(connection):
             connection.transaction.queue(command=self)
             response = RespSimpleString("QUEUED")
         else:
             response = await self._execute(connection)
+
+        if connection.type is ConnectionType.MASTER:
+            connection.server.master_repl_offset += len(self.serialize())
 
         if self._should_be_propogated():
             await connection.server.propogate_command(command=self)
@@ -53,6 +58,7 @@ class RedisCommand(RespSerializable, abc.ABC):
     def _has_response(self, connection: RedisConnection) -> bool:
         """Whether a response should be sent to connection."""
         from .connection import ConnectionType
+
         return connection.type is not ConnectionType.MASTER
 
     @abc.abstractmethod
@@ -158,9 +164,10 @@ class ReplconfCommand(RedisCommand):
         return True
 
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
+        server = connection.server
         match self._argv[1]:
             case "GETACK":
-                return ReplconfCommand(["REPLCONF", "ACK", "0"])
+                return ReplconfCommand(["REPLCONF", "ACK", str(server.master_repl_offset)])
             case _:
                 return RespSimpleString("OK")
 

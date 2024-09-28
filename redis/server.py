@@ -23,6 +23,8 @@ class RedisServer:
         self._master: Optional[RedisConnection] = None
         self._replicas: set[RedisConnection] = set()
 
+        self._master_repl_offset = 0
+
         self._config_params: dict[str, Optional[str]] = kwargs
         self._database = self._try_load_database()
 
@@ -119,4 +121,8 @@ class RedisServer:
     @property
     def master_repl_offset(self) -> int:
         """The server's current replication offset"""
-        return 0
+        return self._master_repl_offset
+
+    @master_repl_offset.setter
+    def master_repl_offset(self, new_offset: int) -> None:
+        self._master_repl_offset = new_offset
