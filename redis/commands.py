@@ -200,6 +200,11 @@ class TypeCommand(RedisCommand):
         return RespSimpleString(type_str)
 
 
+class WaitCommand(RedisCommand):
+    async def _execute(self, connection: RedisConnection) -> RespSerializable:
+        return RespInteger(0)
+
+
 class XaddCommand(RedisCommand):
     async def _execute(self, connection: RedisConnection) -> RespSerializable:
         database = connection.server.database
@@ -313,6 +318,8 @@ def argv_to_command(argv: list[str]) -> RedisCommand:
             return SetCommand(argv)
         case "TYPE":
             return TypeCommand(argv)
+        case "WAIT":
+            return WaitCommand(argv)
         case "XADD":
             return XaddCommand(argv)
         case "XRANGE":
