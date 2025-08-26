@@ -6,12 +6,12 @@ class RedisSortedSet:
         self._mem2score: Dict[bytes, float] = {}
 
     def add(self, score_member_pairs: List[Tuple[float, bytes]]) -> int:
-        new = 0
+        added = 0
         for score, member in score_member_pairs:
             if member not in self._mem2score:
-                new += 1
+                added += 1
             self._mem2score[member] = score
-        return new
+        return added
 
     def get_range(self, start: int, stop: int) -> List[bytes]:
         sorted_members = self._sort_members()
@@ -27,6 +27,13 @@ class RedisSortedSet:
             return self._mem2score[member]
         except KeyError:
             raise ValueError
+
+    def remove(self, members: List[bytes]) -> int:
+        removed = 0
+        for member in members:
+            if self._mem2score.pop(member, None) is not None:
+                removed += 1
+        return removed
 
     def _sort_members(self) -> List[bytes]:
         return [m for m, _ in sorted(self._mem2score.items(), key=lambda x: x[::-1])]

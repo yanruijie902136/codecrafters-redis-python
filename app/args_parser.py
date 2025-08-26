@@ -18,6 +18,7 @@ _COMMAND_CLASSES: Dict[str, Type[RedisCommand]] = {
     'ZCARD': ZcardCommand,
     'ZRANGE': ZrangeCommand,
     'ZRANK': ZrankCommand,
+    'ZREM': ZremCommand,
     'ZSCORE': ZscoreCommand,
 }
 
