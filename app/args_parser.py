@@ -6,6 +6,7 @@ from .commands import *
 _COMMAND_CLASSES: Dict[str, Type[RedisCommand]] = {
     'ECHO': EchoCommand,
     'GET': GetCommand,
+    'LRANGE': LrangeCommand,
     'PING': PingCommand,
     'RPUSH': RpushCommand,
     'SET': SetCommand,
