@@ -1,14 +1,19 @@
 import asyncio
 from types import TracebackType
-from typing import List, Optional, Self, Tuple, Type
+from typing import TYPE_CHECKING, List, Optional, Self, Tuple, Type
 
+from .database import RedisDatabase
 from .protocol import RespValue, resp_decode
+
+if TYPE_CHECKING:
+    from .server import RedisServer
 
 
 class RedisConnection:
-    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
+    def __init__(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter, server: 'RedisServer') -> None:
         self._reader = reader
         self._writer = writer
+        self._server = server
 
         self._host, self._port, *_ = writer.get_extra_info('peername')
 
@@ -31,6 +36,10 @@ class RedisConnection:
     @property
     def addr(self) -> Tuple[str, int]:
         return self._host, self._port
+
+    @property
+    def database(self) -> RedisDatabase:
+        return self._server.get_database(0)
 
     async def __aenter__(self) -> Self:
         return self
