@@ -1,9 +1,10 @@
 import asyncio
-from typing import Optional
+import os
+from typing import List, Optional
 
 from .args_parser import parse_args_to_command
 from .connection import RedisConnection
-from .database import RedisDatabase
+from .database import RedisDatabase, rdb_parse
 
 
 class RedisServerConfig:
@@ -19,8 +20,8 @@ class RedisServerConfig:
 
 class RedisServer:
     def __init__(self, config: RedisServerConfig) -> None:
-        self._databases = [RedisDatabase() for _ in range(16)]
         self._config = config
+        self._databases = self._load_databases()
 
     def get_database(self, db_index: int) -> RedisDatabase:
         return self._databases[db_index]
@@ -46,3 +47,10 @@ class RedisServer:
 
                 response = await command.execute(conn)
                 await conn.write_response(response)
+
+    def _load_databases(self) -> List[RedisDatabase]:
+        path = os.path.join(self._config.get('dir'), self._config.get('dbfilename'))
+        try:
+            return rdb_parse(path)
+        except:
+            return [RedisDatabase() for _ in range(16)]

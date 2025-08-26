@@ -1,6 +1,6 @@
 import asyncio
 from dataclasses import dataclass
-from typing import Callable, Dict, Optional
+from typing import Callable, Dict, List, Optional
 
 from ..data_structs import RedisDataStruct
 
@@ -34,6 +34,9 @@ class RedisDatabase:
             return None
 
         return v.value
+
+    def keys(self) -> List[bytes]:
+        return [k for k, v in self._kv.items() if v.expiry is None or not v.expiry.has_passed()]
 
     def notify(self, key: bytes) -> None:
         cond = self._get_cond(key)
