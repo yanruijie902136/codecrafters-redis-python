@@ -56,11 +56,11 @@ class _RdbParser:
 
     def _expiretimems(self) -> None:
         pxat = int.from_bytes(self._readexactly(8), 'little')
-        self._kvpair(Expiry(pxat=pxat))
+        self._kvpair(Expiry.from_kwargs(pxat=pxat))
 
     def _expiretime(self) -> None:
         exat = int.from_bytes(self._readexactly(4), 'little')
-        self._kvpair(Expiry(exat=exat))
+        self._kvpair(Expiry.from_kwargs(exat=exat))
 
     def _selectdb(self) -> None:
         self._db_index = self._read_length()
@@ -72,6 +72,7 @@ class _RdbParser:
         value_type = ord(self._readexactly(1))
         key = self._read_string().to_bytes()
         value = self._read_value(value_type)
+
         if expiry is None or not expiry.has_passed():
             self._databases[self._db_index].set(key, value, expiry)
 
