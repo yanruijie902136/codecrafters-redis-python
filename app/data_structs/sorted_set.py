@@ -24,3 +24,6 @@ class RedisSortedSet:
 
     def _sort_members(self) -> List[bytes]:
         return [m for m, _ in sorted(self._mem2score.items(), key=lambda x: x[::-1])]
+
+    def __len__(self) -> int:
+        return len(self._mem2score)
