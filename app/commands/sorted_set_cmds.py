@@ -3,6 +3,7 @@ __all__ = (
     'ZcardCommand',
     'ZrangeCommand',
     'ZrankCommand',
+    'ZscoreCommand',
 )
 
 
@@ -113,4 +114,32 @@ class ZrankCommand(RedisCommand):
     def from_args(cls, args: List[bytes]) -> Self:
         if len(args) != 2:
             raise RuntimeError('ZRANK command syntax: ZRANK key member')
+        return cls(key=args[0], member=args[1])
+
+
+@dataclass(frozen=True)
+class ZscoreCommand(RedisCommand):
+    key: bytes
+    member: bytes
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        database = conn.database
+        async with database.lock:
+            zset = database.get(self.key)
+            if zset is None:
+                return RespNullBulkString
+
+            if not isinstance(zset, RedisSortedSet):
+                raise RuntimeError('WRONGTYPE')
+
+            try:
+                score = zset.get_score(self.member)
+                return RespBulkString(str(score).encode())
+            except ValueError:
+                return RespNullBulkString
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 2:
+            raise RuntimeError('ZSCORE command syntax: ZSCORE key member')
         return cls(key=args[0], member=args[1])

@@ -22,6 +22,12 @@ class RedisSortedSet:
     def get_rank(self, member: bytes) -> int:
         return self._sort_members().index(member)
 
+    def get_score(self, member: bytes) -> float:
+        try:
+            return self._mem2score[member]
+        except KeyError:
+            raise ValueError
+
     def _sort_members(self) -> List[bytes]:
         return [m for m, _ in sorted(self._mem2score.items(), key=lambda x: x[::-1])]
 
