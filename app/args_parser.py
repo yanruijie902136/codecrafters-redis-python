@@ -4,6 +4,7 @@ from .commands import *
 
 
 _COMMAND_CLASSES: Dict[str, Type[RedisCommand]] = {
+    'BLPOP': BlpopCommand,
     'ECHO': EchoCommand,
     'GET': GetCommand,
     'LLEN': LlenCommand,

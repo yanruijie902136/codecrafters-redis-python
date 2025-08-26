@@ -1,4 +1,5 @@
 __all__ = (
+    'BlpopCommand',
     'LlenCommand',
     'LpopCommand',
     'LpushCommand',
@@ -11,10 +12,39 @@ from dataclasses import dataclass
 from typing import List, Optional, Self
 
 from ..connection import RedisConnection
-from ..data_structs import RedisList
+from ..data_structs import RedisDataStruct, RedisList
 from ..protocol import *
 
 from .base import RedisCommand
+
+
+def _blpop_predicate(value: RedisDataStruct) -> bool:
+    return isinstance(value, RedisList) and bool(value)
+
+
+@dataclass(frozen=True)
+class BlpopCommand(RedisCommand):
+    key: bytes
+    timeout: float
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        database = conn.database
+        async with database.lock:
+            lst = await database.wait_for(self.key, _blpop_predicate, timeout=self.timeout)
+            if lst is None:
+                return RespNullBulkString
+
+            popped = lst.lpop()
+            if not lst:
+                database.delete(self.key)
+
+            return RespArray([RespBulkString(self.key), RespBulkString(popped)])
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 2:
+            raise RuntimeError('BLPOP command syntax: BLPOP key timeout')
+        return cls(key=args[0], timeout=float(args[1]))
 
 
 @dataclass(frozen=True)
@@ -85,6 +115,7 @@ class LpushCommand(RedisCommand):
                 raise RuntimeError('WRONGTYPE')
 
             lst.lpush(self.elements)
+            database.notify(self.key)
             return RespInteger(len(lst))
 
     @classmethod
@@ -133,6 +164,7 @@ class RpushCommand(RedisCommand):
                 raise RuntimeError('WRONGTYPE')
 
             lst.rpush(self.elements)
+            database.notify(self.key)
             return RespInteger(len(lst))
 
     @classmethod

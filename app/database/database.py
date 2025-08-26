@@ -1,6 +1,6 @@
 import asyncio
 from dataclasses import dataclass
-from typing import Dict, Optional
+from typing import Callable, Dict, Optional
 
 from ..data_structs import RedisDataStruct
 
@@ -18,9 +18,11 @@ class RedisDatabase:
         self._kv: Dict[bytes, _ValueWithExpiry] = {}
 
         self._lock = asyncio.Lock()
+        self._conds: Dict[bytes, asyncio.Condition] = {}
 
     def delete(self, key: bytes) -> None:
         self._kv.pop(key, None)
+        self._conds.pop(key, None)
 
     def get(self, key: bytes) -> Optional[RedisDataStruct]:
         v = self._kv.get(key)
@@ -33,6 +35,10 @@ class RedisDatabase:
 
         return v.value
 
+    def notify(self, key: bytes) -> None:
+        cond = self._get_cond(key)
+        cond.notify_all()
+
     def set(self, key: bytes, value: RedisDataStruct, expiry: Optional[Expiry] = None) -> None:
         self._kv[key] = _ValueWithExpiry(value, expiry)
 
@@ -44,6 +50,23 @@ class RedisDatabase:
         self.set(key, default)
         return default
 
+    async def wait_for(self, key: bytes, predicate: Callable[[RedisDataStruct], bool], *, timeout: float = 0.0) -> Optional[RedisDataStruct]:
+        cond = self._get_cond(key)
+        delay = timeout if timeout else None
+
+        try:
+            async with asyncio.timeout(delay):
+                while True:
+                    value = self.get(key)
+                    if value is not None and predicate(value):
+                        return value
+                    await cond.wait()
+        except TimeoutError:
+            return None
+
     @property
     def lock(self) -> asyncio.Lock:
         return self._lock
+
+    def _get_cond(self, key: bytes) -> asyncio.Condition:
+        return self._conds.setdefault(key, asyncio.Condition(self._lock))
