@@ -11,4 +11,8 @@ class RedisServer:
 
     async def _client_connected_cb(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         async with RedisConnection(reader, writer) as conn:
-            await conn.write(b'+PONG\r\n')
+            while True:
+                data = await conn.read()
+                if not data:
+                    break
+                await conn.write(b'+PONG\r\n')

@@ -12,6 +12,9 @@ class RedisConnection:
         self._writer.close()
         await self._writer.wait_closed()
 
+    async def read(self) -> bytes:
+        return await self._reader.read(4096)
+
     async def write(self, data: bytes) -> None:
         self._writer.write(data)
         await self._writer.drain()
