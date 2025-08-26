@@ -12,3 +12,7 @@ class RedisSortedSet:
                 new += 1
             self._mem2score[member] = score
         return new
+
+    def get_rank(self, member: bytes) -> int:
+        sorted_members = [m for m, _ in sorted(self._mem2score.items(), key=lambda x: x[::-1])]
+        return sorted_members.index(member)
