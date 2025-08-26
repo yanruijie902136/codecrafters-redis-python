@@ -1,5 +1,7 @@
 import asyncio
 
+from .connection import RedisConnection
+
 
 class RedisServer:
     async def run(self) -> None:
@@ -8,4 +10,5 @@ class RedisServer:
             await server.serve_forever()
 
     async def _client_connected_cb(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
-        pass
+        async with RedisConnection(reader, writer) as conn:
+            await conn.write(b'+PONG\r\n')
