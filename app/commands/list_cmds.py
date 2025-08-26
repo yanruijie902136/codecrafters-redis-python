@@ -1,8 +1,14 @@
-__all__ = ('LlenCommand', 'LpushCommand', 'LrangeCommand', 'RpushCommand')
+__all__ = (
+    'LlenCommand',
+    'LpopCommand',
+    'LpushCommand',
+    'LrangeCommand',
+    'RpushCommand',
+)
 
 
 from dataclasses import dataclass
-from typing import List, Self
+from typing import List, Optional, Self
 
 from ..connection import RedisConnection
 from ..data_structs import RedisList
@@ -32,6 +38,38 @@ class LlenCommand(RedisCommand):
         if len(args) != 1:
             raise RuntimeError('LLEN command syntax: LLEN key')
         return cls(key=args[0])
+
+
+@dataclass(frozen=True)
+class LpopCommand(RedisCommand):
+    key: bytes
+    count: Optional[int] = None
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        database = conn.database
+        async with database.lock:
+            lst = database.get(self.key)
+            if lst is None:
+                return RespNullBulkString
+
+            if not isinstance(lst, RedisList):
+                raise RuntimeError('WRONGTYPE')
+
+            popped = lst.lpop(self.count)
+            if not lst:
+                database.delete(self.key)
+
+            if isinstance(popped, list):
+                return RespArray([RespBulkString(e) for e in popped])
+            return RespBulkString(popped)
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) == 1:
+            return cls(key=args[0])
+        elif len(args) == 2:
+            return cls(key=args[0], count=int(args[1]))
+        raise RuntimeError('LPOP command syntax: LPOP key [count]')
 
 
 @dataclass(frozen=True)

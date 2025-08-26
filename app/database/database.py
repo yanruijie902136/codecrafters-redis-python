@@ -19,6 +19,9 @@ class RedisDatabase:
 
         self._lock = asyncio.Lock()
 
+    def delete(self, key: bytes) -> None:
+        self._kv.pop(key, None)
+
     def get(self, key: bytes) -> Optional[RedisDataStruct]:
         v = self._kv.get(key)
         if v is None:
