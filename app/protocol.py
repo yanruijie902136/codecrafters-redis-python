@@ -1,6 +1,7 @@
 __all__ = (
     'RespArray',
     'RespBulkString',
+    'RespInteger',
     'RespNullArray',
     'RespNullBulkString',
     'RespSimpleString',
@@ -32,6 +33,17 @@ class RespSimpleString(RespValue):
         return f'+{self._value}\r\n'.encode()
 
     def to_builtin(self) -> str:
+        return self._value
+
+
+class RespInteger(RespValue):
+    def __init__(self, value: int) -> None:
+        self._value = value
+
+    def encode(self) -> bytes:
+        return f':{self._value}\r\n'.encode()
+
+    def to_builtin(self) -> int:
         return self._value
 
 
@@ -87,6 +99,10 @@ async def resp_decode(reader: asyncio.StreamReader) -> RespValue:
         case b'+':
             value = (await reader.readuntil(b'\r\n'))[:-2].decode()
             return RespSimpleString(value)
+
+        case b':':
+            value = int((await reader.readuntil(b'\r\n'))[:-2])
+            return RespInteger(value)
 
         case b'$':
             length = int((await reader.readuntil(b'\r\n'))[:-2])

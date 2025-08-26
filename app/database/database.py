@@ -33,6 +33,14 @@ class RedisDatabase:
     def set(self, key: bytes, value: RedisDataStruct, expiry: Optional[Expiry] = None) -> None:
         self._kv[key] = _ValueWithExpiry(value, expiry)
 
+    def setdefault(self, key: bytes, default: RedisDataStruct) -> RedisDataStruct:
+        value = self.get(key)
+        if value is not None:
+            return value
+
+        self.set(key, default)
+        return default
+
     @property
     def lock(self) -> asyncio.Lock:
         return self._lock
