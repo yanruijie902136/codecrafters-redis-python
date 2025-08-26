@@ -13,6 +13,14 @@ class RedisSortedSet:
             self._mem2score[member] = score
         return new
 
+    def get_range(self, start: int, stop: int) -> List[bytes]:
+        sorted_members = self._sort_members()
+        if stop == -1:
+            return sorted_members[start:]
+        return sorted_members[start:stop+1]
+
     def get_rank(self, member: bytes) -> int:
-        sorted_members = [m for m, _ in sorted(self._mem2score.items(), key=lambda x: x[::-1])]
-        return sorted_members.index(member)
+        return self._sort_members().index(member)
+
+    def _sort_members(self) -> List[bytes]:
+        return [m for m, _ in sorted(self._mem2score.items(), key=lambda x: x[::-1])]

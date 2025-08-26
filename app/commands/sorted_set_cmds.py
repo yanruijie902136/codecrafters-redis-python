@@ -1,5 +1,6 @@
 __all__ = (
     'ZaddCommand',
+    'ZrangeCommand',
     'ZrankCommand',
 )
 
@@ -36,6 +37,32 @@ class ZaddCommand(RedisCommand):
         scores = [float(a) for a in args[1::2]]
         members = args[2::2]
         return cls(key=args[0], score_member_pairs=list(zip(scores, members)))
+
+
+@dataclass(frozen=True)
+class ZrangeCommand(RedisCommand):
+    key: bytes
+    start: int
+    stop: int
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        database = conn.database
+        async with database.lock:
+            zset = database.get(self.key)
+            if zset is None:
+                return RespArray([])
+
+            if not isinstance(zset, RedisSortedSet):
+                raise RuntimeError('WRONGTYPE')
+
+            elements = zset.get_range(self.start, self.stop)
+            return RespArray([RespBulkString(e) for e in elements])
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 3:
+            raise RuntimeError('ZRANGE command syntax: ZRANGE key start stop')
+        return cls(key=args[0], start=int(args[1]), stop=int(args[2]))
 
 
 @dataclass(frozen=True)
