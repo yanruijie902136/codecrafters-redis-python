@@ -10,6 +10,9 @@ class RedisList:
             return self._elements[start:]
         return self._elements[start:stop+1]
 
+    def lpush(self, elements: List[bytes]) -> None:
+        self._elements = elements[::-1] + self._elements
+
     def rpush(self, elements: List[bytes]) -> None:
         self._elements.extend(elements)
 
