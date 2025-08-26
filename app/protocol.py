@@ -12,7 +12,7 @@ __all__ = (
 
 import asyncio
 from abc import ABC, abstractmethod
-from typing import Any, List
+from typing import Any, List, Union
 
 
 class RespValue(ABC):
@@ -48,7 +48,9 @@ class RespInteger(RespValue):
 
 
 class RespBulkString(RespValue):
-    def __init__(self, value: bytes) -> None:
+    def __init__(self, value: Union[bytes, str]) -> None:
+        if isinstance(value, str):
+            value = value.encode()
         self._value = value
 
     def encode(self) -> bytes:

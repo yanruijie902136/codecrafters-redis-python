@@ -1,10 +1,17 @@
-from typing import Dict, List, Type
+from typing import Dict, List, Type, TypeAlias, Union
 
 from .commands import *
 
 
-_COMMAND_CLASSES: Dict[str, Type[RedisCommand]] = {
+_Lookup: TypeAlias = Dict[str, Type[RedisCommand]]
+_NestedLookup: TypeAlias = Dict[str, Union[Type[RedisCommand], _Lookup]]
+
+
+_COMMAND_CLASSES: _NestedLookup = {
     'BLPOP': BlpopCommand,
+    'CONFIG': {
+        'GET': ConfigGetCommand,
+    },
     'ECHO': EchoCommand,
     'GET': GetCommand,
     'LLEN': LlenCommand,
@@ -24,8 +31,17 @@ _COMMAND_CLASSES: Dict[str, Type[RedisCommand]] = {
 
 
 def parse_args_to_command(args: List[bytes]) -> RedisCommand:
+    lookup = _COMMAND_CLASSES
     command_name, args = args[0].decode(), args[1:]
-    command_class = _COMMAND_CLASSES.get(command_name.upper())
-    if not command_class:
+    res = lookup.get(command_name.upper())
+    if not res:
         raise RuntimeError(f'Unknown command: {command_name}')
-    return command_class.from_args(args)
+    if not isinstance(res, dict):
+        return res.from_args(args)
+
+    lookup = res
+    subcommand_name, args = args[0].decode(), args[1:]
+    res = lookup.get(subcommand_name.upper())
+    if not res:
+        raise RuntimeError(f'Unknown subcommand: {subcommand_name}')
+    return res.from_args(args)

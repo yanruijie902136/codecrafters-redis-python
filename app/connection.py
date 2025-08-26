@@ -41,6 +41,10 @@ class RedisConnection:
     def database(self) -> RedisDatabase:
         return self._server.get_database(0)
 
+    @property
+    def server(self) -> 'RedisServer':
+        return self._server
+
     async def __aenter__(self) -> Self:
         return self
 

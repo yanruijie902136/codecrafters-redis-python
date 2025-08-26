@@ -159,7 +159,7 @@ class ZscoreCommand(RedisCommand):
 
             try:
                 score = zset.get_score(self.member)
-                return RespBulkString(str(score).encode())
+                return RespBulkString(str(score))
             except ValueError:
                 return RespNullBulkString
 

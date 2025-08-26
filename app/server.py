@@ -1,13 +1,26 @@
 import asyncio
+from typing import Optional
 
 from .args_parser import parse_args_to_command
 from .connection import RedisConnection
 from .database import RedisDatabase
 
 
+class RedisServerConfig:
+    def __init__(self, dbfilename: str = 'dump.rdb', dir: str = './') -> None:
+        self._params = {
+            'dbfilename': dbfilename,
+            'dir': dir,
+        }
+
+    def get(self, param: str) -> Optional[str]:
+        return self._params.get(param)
+
+
 class RedisServer:
-    def __init__(self) -> None:
+    def __init__(self, config: RedisServerConfig) -> None:
         self._databases = [RedisDatabase() for _ in range(16)]
+        self._config = config
 
     def get_database(self, db_index: int) -> RedisDatabase:
         return self._databases[db_index]
@@ -16,6 +29,10 @@ class RedisServer:
         server = await asyncio.start_server(self._client_connected_cb, 'localhost', 6379, reuse_port=True)
         async with server:
             await server.serve_forever()
+
+    @property
+    def config(self) -> RedisServerConfig:
+        return self._config
 
     async def _client_connected_cb(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         conn = RedisConnection(reader, writer, server=self)

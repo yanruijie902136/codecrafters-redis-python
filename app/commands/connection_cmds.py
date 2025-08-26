@@ -15,7 +15,7 @@ class EchoCommand(RedisCommand):
     message: str
 
     async def execute(self, conn: RedisConnection) -> RespValue:
-        return RespBulkString(self.message.encode())
+        return RespBulkString(self.message)
 
     @classmethod
     def from_args(cls, args: List[bytes]) -> Self:
