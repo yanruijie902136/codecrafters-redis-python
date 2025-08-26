@@ -14,6 +14,7 @@ _COMMAND_CLASSES: Dict[str, Type[RedisCommand]] = {
     'PING': PingCommand,
     'RPUSH': RpushCommand,
     'SET': SetCommand,
+    'ZADD': ZaddCommand,
 }
 
 
