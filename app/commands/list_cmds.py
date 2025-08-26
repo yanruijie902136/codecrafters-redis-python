@@ -1,4 +1,4 @@
-__all__ = ('LpushCommand', 'LrangeCommand', 'RpushCommand')
+__all__ = ('LlenCommand', 'LpushCommand', 'LrangeCommand', 'RpushCommand')
 
 
 from dataclasses import dataclass
@@ -9,6 +9,29 @@ from ..data_structs import RedisList
 from ..protocol import *
 
 from .base import RedisCommand
+
+
+@dataclass(frozen=True)
+class LlenCommand(RedisCommand):
+    key: bytes
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        database = conn.database
+        async with database.lock:
+            lst = database.get(self.key)
+            if lst is None:
+                return RespInteger(0)
+
+            if not isinstance(lst, RedisList):
+                raise RuntimeError('WRONGTYPE')
+
+            return RespInteger(len(lst))
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 1:
+            raise RuntimeError('LLEN command syntax: LLEN key')
+        return cls(key=args[0])
 
 
 @dataclass(frozen=True)
