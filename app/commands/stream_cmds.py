@@ -1,6 +1,7 @@
 __all__ = ('XaddCommand', 'XrangeCommand', 'XreadCommand')
 
 
+import time
 from dataclasses import dataclass
 from typing import List, Optional, Self, Tuple
 
@@ -58,7 +59,8 @@ class XaddCommand(RedisCommand):
 
     def _parse_id(self, stream: RedisStream) -> EntryId:
         if self.id_str == '*':
-            return stream.auto_gen_next_id()
+            ms_time = int(time.time() * 1000)
+            return stream.auto_gen_next_id(ms_time)
 
         ms_time_str, seq_num_str = self.id_str.split('-')
 
@@ -150,7 +152,14 @@ class XreadCommand(RedisCommand):
 
     async def _block(self, database: RedisDatabase) -> RespValue:
         key = self.keys[0]
-        start_id = self._parse_id(self.id_strs[0])
+        stream = database.get(key)
+        if stream is None:
+            start_id = EntryId(0, 1)
+        elif not isinstance(stream, RedisStream):
+            raise RuntimeError('WRONGTYPE')
+        else:
+            id_str = self.id_strs[0]
+            start_id = stream.auto_gen_next_id() if id_str == '$' else self._parse_id(id_str)
 
         def predicate(v: RedisDataStruct) -> bool:
             return isinstance(v, RedisStream) and bool(v.read(start_id))

@@ -1,7 +1,6 @@
 __all__ = ('EntryId', 'RedisStream', 'StreamEntry')
 
 
-import time
 from bisect import bisect_left
 from collections import OrderedDict
 from dataclasses import dataclass
@@ -41,14 +40,16 @@ class RedisStream:
 
     def auto_gen_next_id(self, ms_time: Optional[int] = None) -> EntryId:
         if ms_time is None:
-            ms_time = int(time.time() * 1000)
+            if not self._entries:
+                return EntryId(0, 1)
+            last_id = self._entries[-1].id
+            return EntryId(last_id.ms_time, last_id.seq_num + 1)
 
         max_seq_num = self._max_seq_nums.get(ms_time, None)
         if max_seq_num is None:
             seq_num = 0 if ms_time > 0 else 1
         else:
             seq_num = max_seq_num + 1
-
         return EntryId(ms_time, seq_num)
 
     def get_range(self, start_id: EntryId, end_id: EntryId) -> List[StreamEntry]:
