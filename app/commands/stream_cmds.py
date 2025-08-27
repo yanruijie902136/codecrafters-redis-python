@@ -166,8 +166,11 @@ class XreadCommand(RedisCommand):
     @classmethod
     def from_args(cls, args: List[bytes]) -> Self:
         if len(args) < 3 or len(args) % 2 == 0 or args[0].upper() != b'STREAMS':
-            raise RuntimeError('XREAD command syntax: XREAD STREAMS key id')
+            raise RuntimeError('XREAD command syntax: XREAD STREAMS key [key ...] id [id ...]')
 
         args = args[1:]
         n = len(args) // 2
-        return cls(keys=args[:n], id_strs=[s.decode() for s in args[n:]])
+        return cls(
+            keys=args[:n],
+            id_strs=[arg.decode() for arg in args[n:]],
+        )
