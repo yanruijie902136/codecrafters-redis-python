@@ -37,10 +37,10 @@ class XaddCommand(RedisCommand):
             return RespBulkString(str(entry_id))
 
     def _parse_id(self, stream: RedisStream) -> EntryId:
-        ms_time_str, seq_num_str = self.id_str.split('-')
-
-        if ms_time_str == '*':
+        if self.id_str == '*':
             return stream.auto_gen_next_id()
+
+        ms_time_str, seq_num_str = self.id_str.split('-')
 
         ms_time = int(ms_time_str)
         if seq_num_str == '*':
