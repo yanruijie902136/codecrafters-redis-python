@@ -46,7 +46,10 @@ class IncrCommand(RedisCommand):
             if not isinstance(value, RedisString):
                 raise RuntimeError('WRONGTYPE')
 
-            return RespInteger(value.incr())
+            try:
+                return RespInteger(value.incr())
+            except ValueError:
+                return RespSimpleError('ERR value is not an integer or out of range')
 
     @classmethod
     def from_args(cls, args: List[bytes]) -> Self:
