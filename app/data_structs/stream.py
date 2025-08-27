@@ -1,9 +1,10 @@
 __all__ = ('EntryId', 'RedisStream', 'StreamEntry')
 
 
+import time
 from collections import OrderedDict
 from dataclasses import dataclass
-from typing import List, Tuple
+from typing import List, Optional, Tuple
 
 
 @dataclass(frozen=True, order=True)
@@ -28,8 +29,23 @@ class StreamEntry:
 class RedisStream:
     def __init__(self) -> None:
         self._entries: List[StreamEntry] = []
+        self._max_seq_nums: dict[int, int] = {}
 
     def add(self, entry_id: EntryId, fvpairs: List[Tuple[bytes, bytes]]) -> None:
         if self._entries and entry_id <= self._entries[-1].id:
             raise ValueError
+
+        self._max_seq_nums[entry_id.ms_time] = entry_id.seq_num
         self._entries.append(StreamEntry(entry_id, OrderedDict(fvpairs)))
+
+    def auto_gen_next_id(self, ms_time: Optional[int] = None) -> EntryId:
+        if ms_time is None:
+            ms_time = int(time.time() * 1000)
+
+        max_seq_num = self._max_seq_nums.get(ms_time, None)
+        if max_seq_num is None:
+            seq_num = 0 if ms_time > 0 else 1
+        else:
+            seq_num = max_seq_num + 1
+
+        return EntryId(ms_time, seq_num)

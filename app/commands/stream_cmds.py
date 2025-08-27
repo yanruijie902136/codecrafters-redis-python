@@ -25,7 +25,7 @@ class XaddCommand(RedisCommand):
                 raise RuntimeError('WRONGTYPE')
 
             try:
-                entry_id = self._parse_id()
+                entry_id = self._parse_id(stream)
             except ValueError:
                 return RespSimpleError('ERR The ID specified in XADD must be greater than 0-0')
 
@@ -36,8 +36,17 @@ class XaddCommand(RedisCommand):
 
             return RespBulkString(str(entry_id))
 
-    def _parse_id(self) -> EntryId:
-        ms_time, seq_num = (int(s) for s in self.id_str.split('-'))
+    def _parse_id(self, stream: RedisStream) -> EntryId:
+        ms_time_str, seq_num_str = self.id_str.split('-')
+
+        if ms_time_str == '*':
+            return stream.auto_gen_next_id()
+
+        ms_time = int(ms_time_str)
+        if seq_num_str == '*':
+            return stream.auto_gen_next_id(ms_time)
+
+        seq_num = int(seq_num_str)
         return EntryId(ms_time, seq_num)
 
     @classmethod
