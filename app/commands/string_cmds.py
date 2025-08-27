@@ -1,4 +1,4 @@
-__all__ = 'GetCommand', 'SetCommand'
+__all__ = 'GetCommand', 'IncrCommand', 'SetCommand'
 
 
 from dataclasses import dataclass
@@ -32,6 +32,26 @@ class GetCommand(RedisCommand):
     def from_args(cls, args: List[bytes]) -> Self:
         if len(args) != 1:
             raise RuntimeError('GET command syntax: GET key')
+        return cls(key=args[0])
+
+
+@dataclass(frozen=True)
+class IncrCommand(RedisCommand):
+    key: bytes
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        database = conn.database
+        async with database.lock:
+            value = database.setdefault(self.key, RedisString(b'0'))
+            if not isinstance(value, RedisString):
+                raise RuntimeError('WRONGTYPE')
+
+            return RespInteger(value.incr())
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 1:
+            raise RuntimeError('INCR command syntax: INCR key')
         return cls(key=args[0])
 
 

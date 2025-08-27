@@ -14,6 +14,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     },
     'ECHO': EchoCommand,
     'GET': GetCommand,
+    'INCR': IncrCommand,
     'KEYS': KeysCommand,
     'LLEN': LlenCommand,
     'LPOP': LpopCommand,
