@@ -5,18 +5,27 @@ from dataclasses import dataclass
 from typing import List, Optional, Self, Tuple
 
 from ..connection import RedisConnection
-from ..data_structs import EntryId, RedisStream, StreamEntry
+from ..data_structs import EntryId, RedisDataStruct, RedisStream, StreamEntry
 from ..database import RedisDatabase
 from ..protocol import *
 
 from .base import RedisCommand
 
 
-def _entry_to_array(entry: StreamEntry) -> RespArray:
+def _entry_to_resp_array(entry: StreamEntry) -> RespArray:
     return RespArray([
         RespBulkString(str(entry.id)),
         RespArray([
             RespBulkString(b) for pair in entry.fv.items() for b in pair
+        ]),
+    ])
+
+
+def _key_and_entries_to_resp_array(key: bytes, entries: List[StreamEntry]) -> RespArray:
+    return RespArray([
+        RespBulkString(key),
+        RespArray([
+            _entry_to_resp_array(e) for e in entries
         ]),
     ])
 
@@ -44,6 +53,7 @@ class XaddCommand(RedisCommand):
             except ValueError:
                 return RespSimpleError('ERR The ID specified in XADD is equal or smaller than the target stream top item')
 
+            database.notify(self.key)
             return RespBulkString(str(entry_id))
 
     def _parse_id(self, stream: RedisStream) -> EntryId:
@@ -88,7 +98,7 @@ class XrangeCommand(RedisCommand):
                 raise RuntimeError('WRONGTYPE')
 
             entries = stream.get_range(self._parse_start_id(), self._parse_end_id(stream))
-            return RespArray([_entry_to_array(e) for e in entries])
+            return RespArray([_entry_to_resp_array(e) for e in entries])
 
     def _parse_start_id(self) -> EntryId:
         if self.start_id_str == '-':
@@ -128,36 +138,43 @@ class XrangeCommand(RedisCommand):
 class XreadCommand(RedisCommand):
     keys: List[bytes]
     id_strs: List[str]
+    block_ms: Optional[int] = None
 
     async def execute(self, conn: RedisConnection) -> RespValue:
         database = conn.database
         async with database.lock:
-            values = []
-            for key, id_str in zip(self.keys, self.id_strs):
-                value = self._xread(database, key, id_str)
-                if value is not None:
-                    values.append(value)
+            if self.block_ms is not None:
+                return await self._block(database)
+            else:
+                return self._no_block(database)
 
-            return RespArray(values) if values else RespNullBulkString
+    async def _block(self, database: RedisDatabase) -> RespValue:
+        key = self.keys[0]
+        start_id = self._parse_id(self.id_strs[0])
 
-    def _xread(self, database: RedisDatabase, key: bytes, id_str: str) -> Optional[RespArray]:
-        stream = database.get(key)
+        def predicate(v: RedisDataStruct) -> bool:
+            return isinstance(v, RedisStream) and bool(v.read(start_id))
+
+        stream = await database.wait_for(key, predicate, timeout=self.block_ms / 1000)
         if stream is None:
-            return None
+            return RespNullBulkString
+        return RespArray([_key_and_entries_to_resp_array(key, stream.read(start_id))])
 
-        if not isinstance(stream, RedisStream):
-            raise RuntimeError('WRONGTYPE')
+    def _no_block(self, database: RedisDatabase) -> RespValue:
+        values = []
+        for key, id_str in zip(self.keys, self.id_strs):
+            stream = database.get(key)
+            if stream is None:
+                continue
 
-        entries = stream.read(self._parse_id(id_str))
-        if not entries:
-            return None
+            if not isinstance(stream, RedisStream):
+                raise RuntimeError('WRONGTYPE')
 
-        return RespArray([
-            RespBulkString(key),
-            RespArray([
-                _entry_to_array(e) for e in entries
-            ]),
-        ])
+            entries = stream.read(self._parse_id(id_str))
+            if entries:
+                values.append(_key_and_entries_to_resp_array(key, entries))
+
+        return RespArray(values) if values else RespNullBulkString
 
     def _parse_id(self, id_str: str) -> EntryId:
         ms_time, seq_num = (int(s) for s in id_str.split('-'))
@@ -165,12 +182,19 @@ class XreadCommand(RedisCommand):
 
     @classmethod
     def from_args(cls, args: List[bytes]) -> Self:
+        if args[0].upper() == b'BLOCK':
+            block_ms = int(args[1])
+            args = args[2:]
+        else:
+            block_ms = None
+
         if len(args) < 3 or len(args) % 2 == 0 or args[0].upper() != b'STREAMS':
-            raise RuntimeError('XREAD command syntax: XREAD STREAMS key [key ...] id [id ...]')
+            raise RuntimeError('XREAD command syntax: XREAD [BLOCK milliseconds] STREAMS key [key ...] id [id ...]')
 
         args = args[1:]
         n = len(args) // 2
         return cls(
             keys=args[:n],
             id_strs=[arg.decode() for arg in args[n:]],
+            block_ms=block_ms
         )
