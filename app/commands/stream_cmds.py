@@ -1,4 +1,4 @@
-__all__ = ('XaddCommand', 'XrangeCommand')
+__all__ = ('XaddCommand', 'XrangeCommand', 'XreadCommand')
 
 
 from dataclasses import dataclass
@@ -121,3 +121,40 @@ class XrangeCommand(RedisCommand):
             start_id_str=args[1].decode(),
             end_id_str=args[2].decode(),
         )
+
+
+@dataclass(frozen=True)
+class XreadCommand(RedisCommand):
+    key: bytes
+    id_str: str
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        database = conn.database
+        async with database.lock:
+            stream = database.get(self.key)
+            if stream is None:
+                return RespNullBulkString
+
+            if not isinstance(stream, RedisStream):
+                raise RuntimeError('WRONGTYPE')
+
+            entries = stream.read(self._parse_id())
+            return RespArray([
+                RespArray([
+                    RespBulkString(self.key),
+                    RespArray([
+                        _entry_to_array(e) for e in entries
+                    ]),
+                ]),
+            ])
+
+    def _parse_id(self) -> EntryId:
+        ms_time, seq_num = (int(s) for s in self.id_str.split('-'))
+        return EntryId(ms_time, seq_num + 1)
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 3 or args[0].upper() != b'STREAMS':
+            raise RuntimeError('XREAD command syntax: XREAD STREAMS key id')
+
+        return cls(key=args[1], id_str=args[2].decode())

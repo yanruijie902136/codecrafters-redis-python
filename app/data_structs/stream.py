@@ -2,6 +2,7 @@ __all__ = ('EntryId', 'RedisStream', 'StreamEntry')
 
 
 import time
+from bisect import bisect_left
 from collections import OrderedDict
 from dataclasses import dataclass
 from typing import List, Optional, Tuple
@@ -52,3 +53,7 @@ class RedisStream:
 
     def get_range(self, start_id: EntryId, end_id: EntryId) -> List[StreamEntry]:
         return [e for e in self._entries if start_id <= e.id < end_id]
+
+    def read(self, start_id: EntryId) -> List[StreamEntry]:
+        i = bisect_left(self._entries, start_id, key=lambda e: e.id)
+        return self._entries[i:]
