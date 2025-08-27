@@ -47,6 +47,8 @@ class TypeCommand(RedisCommand):
             return 'list'
         elif isinstance(value, RedisSortedSet):
             return 'zset'
+        elif isinstance(value, RedisStream):
+            return 'stream'
         else:
             return 'string'
 

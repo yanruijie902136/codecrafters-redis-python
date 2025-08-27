@@ -52,5 +52,5 @@ class RedisServer:
         path = os.path.join(self._config.get('dir'), self._config.get('dbfilename'))
         try:
             return rdb_parse(path)
-        except:
+        except FileNotFoundError:
             return [RedisDatabase() for _ in range(16)]

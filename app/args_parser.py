@@ -23,6 +23,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     'RPUSH': RpushCommand,
     'SET': SetCommand,
     'TYPE': TypeCommand,
+    'XADD': XaddCommand,
     'ZADD': ZaddCommand,
     'ZCARD': ZcardCommand,
     'ZRANGE': ZrangeCommand,
