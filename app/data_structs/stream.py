@@ -49,3 +49,6 @@ class RedisStream:
             seq_num = max_seq_num + 1
 
         return EntryId(ms_time, seq_num)
+
+    def get_range(self, start_id: EntryId, end_id: EntryId) -> List[StreamEntry]:
+        return [e for e in self._entries if start_id <= e.id < end_id]

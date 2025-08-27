@@ -1,14 +1,23 @@
-__all__ = 'XaddCommand',
+__all__ = ('XaddCommand', 'XrangeCommand')
 
 
 from dataclasses import dataclass
 from typing import List, Self, Tuple
 
 from ..connection import RedisConnection
-from ..data_structs import EntryId, RedisStream
+from ..data_structs import EntryId, RedisStream, StreamEntry
 from ..protocol import *
 
 from .base import RedisCommand
+
+
+def _entry_to_array(entry: StreamEntry) -> RespArray:
+    return RespArray([
+        RespBulkString(str(entry.id)),
+        RespArray([
+            RespBulkString(b) for pair in entry.fv.items() for b in pair
+        ]),
+    ])
 
 
 @dataclass(frozen=True)
@@ -58,4 +67,57 @@ class XaddCommand(RedisCommand):
             key=args[0],
             id_str=args[1].decode(),
             fvpairs=list(zip(args[2::2], args[3::2])),
+        )
+
+
+@dataclass(frozen=True)
+class XrangeCommand(RedisCommand):
+    key: bytes
+    start_id_str: str
+    end_id_str: str
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        database = conn.database
+        async with database.lock:
+            stream = database.get(self.key)
+            if stream is None:
+                return RespArray([])
+
+            if not isinstance(stream, RedisStream):
+                raise RuntimeError('WRONGTYPE')
+
+            entries = stream.get_range(self._parse_start_id(), self._parse_end_id(stream))
+            return RespArray([_entry_to_array(e) for e in entries])
+
+    def _parse_start_id(self) -> EntryId:
+        if self.start_id_str == '-':
+            return EntryId(0, 1)
+
+        if '-' not in self.start_id_str:
+            ms_time = int(self.start_id_str)
+            return EntryId(ms_time, 0 if ms_time > 0 else 1)
+
+        ms_time, seq_num = (int(s) for s in self.start_id_str.split('-'))
+        return EntryId(ms_time, seq_num)
+
+    def _parse_end_id(self, stream: RedisStream) -> EntryId:
+        if self.end_id_str == '+':
+            return stream.auto_gen_next_id()
+
+        if '-' not in self.end_id_str:
+            ms_time = int(self.end_id_str)
+            return stream.auto_gen_next_id(ms_time)
+
+        ms_time, seq_num = (int(s) for s in self.end_id_str.split('-'))
+        return EntryId(ms_time, seq_num + 1)
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 3:
+            raise RuntimeError('XRANGE command syntax: XRANGE key start end')
+
+        return cls(
+            key=args[0],
+            start_id_str=args[1].decode(),
+            end_id_str=args[2].decode(),
         )

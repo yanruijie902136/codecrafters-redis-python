@@ -24,6 +24,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     'SET': SetCommand,
     'TYPE': TypeCommand,
     'XADD': XaddCommand,
+    'XRANGE': XrangeCommand,
     'ZADD': ZaddCommand,
     'ZCARD': ZcardCommand,
     'ZRANGE': ZrangeCommand,
