@@ -22,6 +22,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     'PING': PingCommand,
     'RPUSH': RpushCommand,
     'SET': SetCommand,
+    'TYPE': TypeCommand,
     'ZADD': ZaddCommand,
     'ZCARD': ZcardCommand,
     'ZRANGE': ZrangeCommand,

@@ -1,11 +1,12 @@
-__all__ = 'KeysCommand',
+__all__ = 'KeysCommand', 'TypeCommand'
 
 
 from dataclasses import dataclass
 from fnmatch import fnmatch
-from typing import List, Self
+from typing import List, Optional, Self
 
 from ..connection import RedisConnection
+from ..data_structs import *
 from ..protocol import *
 
 from .base import RedisCommand
@@ -26,3 +27,31 @@ class KeysCommand(RedisCommand):
         if len(args) != 1:
             raise RuntimeError('KEYS command syntax: KEYS pattern')
         return cls(pattern=args[0])
+
+
+@dataclass(frozen=True)
+class TypeCommand(RedisCommand):
+    key: bytes
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        database = conn.database
+        async with database.lock:
+            value = database.get(self.key)
+            return RespSimpleString(self._stringify_type(value))
+
+    def _stringify_type(self, value: Optional[RedisDataStruct]) -> str:
+        if value is None:
+            return 'none'
+
+        if isinstance(value, RedisList):
+            return 'list'
+        elif isinstance(value, RedisSortedSet):
+            return 'zset'
+        else:
+            return 'string'
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 1:
+            raise RuntimeError('TYPE command syntax: TYPE key')
+        return cls(key=args[0])
