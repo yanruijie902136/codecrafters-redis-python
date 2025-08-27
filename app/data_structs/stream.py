@@ -11,6 +11,10 @@ class EntryId:
     ms_time: int
     seq_num: int
 
+    def __post_init__(self) -> None:
+        if (self.ms_time, self.seq_num) <= (0, 0):
+            raise ValueError
+
     def __str__(self) -> str:
         return f'{self.ms_time}-{self.seq_num}'
 
@@ -26,5 +30,6 @@ class RedisStream:
         self._entries: List[StreamEntry] = []
 
     def add(self, entry_id: EntryId, fvpairs: List[Tuple[bytes, bytes]]) -> None:
-        entry = StreamEntry(entry_id, OrderedDict(fvpairs))
-        self._entries.append(entry)
+        if self._entries and entry_id <= self._entries[-1].id:
+            raise ValueError
+        self._entries.append(StreamEntry(entry_id, OrderedDict(fvpairs)))

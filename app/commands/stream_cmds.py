@@ -24,8 +24,15 @@ class XaddCommand(RedisCommand):
             if not isinstance(stream, RedisStream):
                 raise RuntimeError('WRONGTYPE')
 
-            entry_id = self._parse_id()
-            stream.add(entry_id, self.fvpairs)
+            try:
+                entry_id = self._parse_id()
+            except ValueError:
+                return RespSimpleError('ERR The ID specified in XADD must be greater than 0-0')
+
+            try:
+                stream.add(entry_id, self.fvpairs)
+            except ValueError:
+                return RespSimpleError('ERR The ID specified in XADD is equal or smaller than the target stream top item')
 
             return RespBulkString(str(entry_id))
 
@@ -37,6 +44,7 @@ class XaddCommand(RedisCommand):
     def from_args(cls, args: List[bytes]) -> Self:
         if len(args) < 4 or len(args) % 2 != 0:
             raise RuntimeError('XADD command syntax: XADD key id field value [field value ...]')
+
         return cls(
             key=args[0],
             id_str=args[1].decode(),
