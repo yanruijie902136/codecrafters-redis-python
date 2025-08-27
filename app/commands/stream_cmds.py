@@ -2,10 +2,11 @@ __all__ = ('XaddCommand', 'XrangeCommand', 'XreadCommand')
 
 
 from dataclasses import dataclass
-from typing import List, Self, Tuple
+from typing import List, Optional, Self, Tuple
 
 from ..connection import RedisConnection
 from ..data_structs import EntryId, RedisStream, StreamEntry
+from ..database import RedisDatabase
 from ..protocol import *
 
 from .base import RedisCommand
@@ -125,36 +126,48 @@ class XrangeCommand(RedisCommand):
 
 @dataclass(frozen=True)
 class XreadCommand(RedisCommand):
-    key: bytes
-    id_str: str
+    keys: List[bytes]
+    id_strs: List[str]
 
     async def execute(self, conn: RedisConnection) -> RespValue:
         database = conn.database
         async with database.lock:
-            stream = database.get(self.key)
-            if stream is None:
-                return RespNullBulkString
+            values = []
+            for key, id_str in zip(self.keys, self.id_strs):
+                value = self._xread(database, key, id_str)
+                if value is not None:
+                    values.append(value)
 
-            if not isinstance(stream, RedisStream):
-                raise RuntimeError('WRONGTYPE')
+            return RespArray(values) if values else RespNullBulkString
 
-            entries = stream.read(self._parse_id())
-            return RespArray([
-                RespArray([
-                    RespBulkString(self.key),
-                    RespArray([
-                        _entry_to_array(e) for e in entries
-                    ]),
-                ]),
-            ])
+    def _xread(self, database: RedisDatabase, key: bytes, id_str: str) -> Optional[RespArray]:
+        stream = database.get(key)
+        if stream is None:
+            return None
 
-    def _parse_id(self) -> EntryId:
-        ms_time, seq_num = (int(s) for s in self.id_str.split('-'))
+        if not isinstance(stream, RedisStream):
+            raise RuntimeError('WRONGTYPE')
+
+        entries = stream.read(self._parse_id(id_str))
+        if not entries:
+            return None
+
+        return RespArray([
+            RespBulkString(key),
+            RespArray([
+                _entry_to_array(e) for e in entries
+            ]),
+        ])
+
+    def _parse_id(self, id_str: str) -> EntryId:
+        ms_time, seq_num = (int(s) for s in id_str.split('-'))
         return EntryId(ms_time, seq_num + 1)
 
     @classmethod
     def from_args(cls, args: List[bytes]) -> Self:
-        if len(args) != 3 or args[0].upper() != b'STREAMS':
+        if len(args) < 3 or len(args) % 2 == 0 or args[0].upper() != b'STREAMS':
             raise RuntimeError('XREAD command syntax: XREAD STREAMS key id')
 
-        return cls(key=args[1], id_str=args[2].decode())
+        args = args[1:]
+        n = len(args) // 2
+        return cls(keys=args[:n], id_strs=[s.decode() for s in args[n:]])
