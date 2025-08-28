@@ -13,6 +13,7 @@ _COMMAND_CLASSES: _NestedLookup = {
         'GET': ConfigGetCommand,
     },
     'ECHO': EchoCommand,
+    'EXEC': ExecCommand,
     'GET': GetCommand,
     'INCR': IncrCommand,
     'KEYS': KeysCommand,
