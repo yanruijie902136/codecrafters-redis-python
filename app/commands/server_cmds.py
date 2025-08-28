@@ -34,7 +34,11 @@ class InfoCommand(RedisCommand):
     section: str
 
     async def execute(self, conn: RedisConnection) -> RespValue:
-        return RespBulkString(f'role:{conn.server.role}')
+        return RespBulkString(
+            f'role:{conn.server.role}\r\n'
+            'master_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb\r\n'
+            'master_repl_offset:0'
+        )
 
     @classmethod
     def from_args(cls, args: List[bytes]) -> Self:
