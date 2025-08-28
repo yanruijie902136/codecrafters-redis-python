@@ -47,7 +47,7 @@ class RedisServer:
                 command = parse_args_to_command(args)
                 print(f'Received command from {conn.addr}: {command!r}')
 
-                response = await command.execute(conn)
+                response = await self._execute(conn, command)
                 await conn.write_response(response)
 
     async def _execute(self, conn: RedisConnection, command: RedisCommand) -> RespValue:
