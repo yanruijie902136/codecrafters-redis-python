@@ -20,6 +20,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     'LPOP': LpopCommand,
     'LPUSH': LpushCommand,
     'LRANGE': LrangeCommand,
+    'MULTI': MultiCommand,
     'PING': PingCommand,
     'RPUSH': RpushCommand,
     'SET': SetCommand,
