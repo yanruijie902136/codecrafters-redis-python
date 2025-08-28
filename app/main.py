@@ -9,6 +9,7 @@ def parse_command_line_args() -> argparse.Namespace:
 
     parser.add_argument('--dbfilename', type=str, default='dump.rdb')
     parser.add_argument('--dir', type=str, default='./')
+    parser.add_argument('--port', type=int, default=6379)
 
     return parser.parse_args()
 
@@ -16,7 +17,7 @@ def parse_command_line_args() -> argparse.Namespace:
 def main() -> None:
     args = parse_command_line_args()
     config = RedisServerConfig(dbfilename=args.dbfilename, dir=args.dir)
-    server = RedisServer(config)
+    server = RedisServer(args.port, config)
     asyncio.run(server.run())
 
 

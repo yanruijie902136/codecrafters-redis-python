@@ -21,7 +21,8 @@ class RedisServerConfig:
 
 
 class RedisServer:
-    def __init__(self, config: RedisServerConfig) -> None:
+    def __init__(self, port: int, config: RedisServerConfig) -> None:
+        self._port = port
         self._config = config
         self._databases = self._load_databases()
 
@@ -29,7 +30,7 @@ class RedisServer:
         return self._databases[db_index]
 
     async def run(self) -> None:
-        server = await asyncio.start_server(self._client_connected_cb, 'localhost', 6379, reuse_port=True)
+        server = await asyncio.start_server(self._client_connected_cb, 'localhost', self._port, reuse_port=True)
         async with server:
             await server.serve_forever()
 
