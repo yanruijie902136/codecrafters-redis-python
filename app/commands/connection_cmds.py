@@ -27,7 +27,9 @@ class EchoCommand(RedisCommand):
 @dataclass(frozen=True)
 class PingCommand(RedisCommand):
     async def execute(self, conn: RedisConnection) -> RespValue:
-        return RespSimpleString('PONG')
+        if not conn.has_subbed:
+            return RespSimpleString('PONG')
+        return RespArray([RespBulkString('pong'), RespBulkString('')])
 
     def to_resp_array(self) -> RespArray:
         return RespArray([RespBulkString('PING')])
