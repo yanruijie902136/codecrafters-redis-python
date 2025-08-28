@@ -4,6 +4,7 @@ from typing import TYPE_CHECKING, List, Optional, Self, Tuple, Type
 
 from .database import RedisDatabase
 from .protocol import RespValue, resp_decode
+from .transaction import RedisTransaction
 
 if TYPE_CHECKING:
     from .server import RedisServer
@@ -16,6 +17,7 @@ class RedisConnection:
         self._server = server
 
         self._host, self._port, *_ = writer.get_extra_info('peername')
+        self._transaction = RedisTransaction(conn=self)
 
     async def close(self) -> None:
         self._writer.close()
@@ -44,6 +46,10 @@ class RedisConnection:
     @property
     def server(self) -> 'RedisServer':
         return self._server
+
+    @property
+    def transaction(self) -> RedisTransaction:
+        return self._transaction
 
     async def __aenter__(self) -> Self:
         return self

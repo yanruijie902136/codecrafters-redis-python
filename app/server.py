@@ -3,8 +3,10 @@ import os
 from typing import List, Optional
 
 from .args_parser import parse_args_to_command
+from .commands import ExecCommand, MultiCommand, RedisCommand
 from .connection import RedisConnection
 from .database import RedisDatabase, rdb_parse
+from .protocol import RespSimpleString, RespValue
 
 
 class RedisServerConfig:
@@ -47,6 +49,13 @@ class RedisServer:
 
                 response = await command.execute(conn)
                 await conn.write_response(response)
+
+    async def _execute(self, conn: RedisConnection, command: RedisCommand) -> RespValue:
+        if conn.transaction.active and not isinstance(command, (ExecCommand, MultiCommand)):
+            conn.transaction.enqueue(command)
+            return RespSimpleString('QUEUED')
+
+        return await command.execute(conn)
 
     def _load_databases(self) -> List[RedisDatabase]:
         path = os.path.join(self._config.get('dir'), self._config.get('dbfilename'))
