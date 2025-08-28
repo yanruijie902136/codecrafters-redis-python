@@ -32,6 +32,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     'SET': SetCommand,
     'SUBSCRIBE': SubscribeCommand,
     'TYPE': TypeCommand,
+    'UNSUBSCRIBE': UnsubscribeCommand,
     'WAIT': WaitCommand,
     'XADD': XaddCommand,
     'XRANGE': XrangeCommand,

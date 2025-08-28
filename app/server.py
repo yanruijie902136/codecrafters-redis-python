@@ -13,6 +13,7 @@ from .commands import (
     RedisCommand,
     ReplconfCommand,
     SubscribeCommand,
+    UnsubscribeCommand,
 )
 from .connection import RedisConnection
 from .database import RedisDatabase, rdb_parse
@@ -108,7 +109,7 @@ class RedisServer:
         await self._handle_connection(RedisConnection(reader, writer, server=self))
 
     async def _execute(self, conn: RedisConnection, command: RedisCommand) -> RespValue:
-        if has_subbed(conn) and not isinstance(command, (PingCommand, SubscribeCommand)):
+        if has_subbed(conn) and not isinstance(command, (PingCommand, SubscribeCommand, UnsubscribeCommand)):
             return RespSimpleError(f'ERR Can\'t execute \'{command.__class__.__name__[:-7]}\'')
 
         if conn.transaction.active and not isinstance(command, (DiscardCommand, ExecCommand, MultiCommand)):

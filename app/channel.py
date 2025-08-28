@@ -31,3 +31,7 @@ async def publish(channel: str, message: str) -> None:
 
 def subscribe(conn: RedisConnection, channel: str) -> None:
     _channels[channel].add(conn)
+
+
+def unsubscribe(conn: RedisConnection, channel: str) -> None:
+    _channels[channel].discard(conn)
