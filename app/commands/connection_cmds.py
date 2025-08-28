@@ -4,6 +4,7 @@ __all__ = 'EchoCommand', 'PingCommand'
 from dataclasses import dataclass
 from typing import List, Self
 
+from ..channel import has_subbed
 from ..connection import RedisConnection
 from ..protocol import *
 
@@ -27,7 +28,7 @@ class EchoCommand(RedisCommand):
 @dataclass(frozen=True)
 class PingCommand(RedisCommand):
     async def execute(self, conn: RedisConnection) -> RespValue:
-        if not conn.has_subbed:
+        if not has_subbed(conn):
             return RespSimpleString('PONG')
         return RespArray([RespBulkString('pong'), RespBulkString('')])
 

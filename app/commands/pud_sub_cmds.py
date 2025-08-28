@@ -1,9 +1,10 @@
-__all__ = ('SubscribeCommand',)
+__all__ = ('PublishCommand', 'SubscribeCommand')
 
 
 from dataclasses import dataclass
 from typing import List, Self
 
+from ..channel import count_subbed_channels, count_subscribers, subscribe
 from ..connection import RedisConnection
 from ..protocol import *
 
@@ -11,15 +12,30 @@ from .base import RedisCommand
 
 
 @dataclass(frozen=True)
+class PublishCommand(RedisCommand):
+    channel: str
+    message: str
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        return RespInteger(count_subscribers(self.channel))
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 2:
+            raise RuntimeError('PUBLISH command syntax: PUBLISH channel message')
+        return cls(channel=args[0].decode(), message=args[1].decode())
+
+
+@dataclass(frozen=True)
 class SubscribeCommand(RedisCommand):
     channel: str
 
     async def execute(self, conn: RedisConnection) -> RespValue:
-        conn.subscribe(self.channel)
+        subscribe(conn, self.channel)
         return RespArray([
             RespBulkString('subscribe'),
             RespBulkString(self.channel),
-            RespInteger(conn.num_subbed_channels),
+            RespInteger(count_subbed_channels(conn)),
         ])
 
     @classmethod

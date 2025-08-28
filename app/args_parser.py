@@ -26,6 +26,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     'MULTI': MultiCommand,
     'PING': PingCommand,
     'PSYNC': PsyncCommand,
+    'PUBLISH': PublishCommand,
     'REPLCONF': ReplconfCommand,
     'RPUSH': RpushCommand,
     'SET': SetCommand,

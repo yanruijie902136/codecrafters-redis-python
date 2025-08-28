@@ -3,6 +3,7 @@ import os
 from typing import List, Literal, Optional, Set, TypeAlias, Tuple
 
 from .args_parser import parse_args_to_command
+from .channel import has_subbed
 from .commands import (
     DiscardCommand,
     ExecCommand,
@@ -107,7 +108,7 @@ class RedisServer:
         await self._handle_connection(RedisConnection(reader, writer, server=self))
 
     async def _execute(self, conn: RedisConnection, command: RedisCommand) -> RespValue:
-        if conn.has_subbed and not isinstance(command, (PingCommand, SubscribeCommand)):
+        if has_subbed(conn) and not isinstance(command, (PingCommand, SubscribeCommand)):
             return RespSimpleError(f'ERR Can\'t execute \'{command.__class__.__name__[:-7]}\'')
 
         if conn.transaction.active and not isinstance(command, (DiscardCommand, ExecCommand, MultiCommand)):
