@@ -38,6 +38,7 @@ class RedisServer:
         self._master_addr = master_addr
         self._master = None
         self._replicas: Set[RedisConnection] = set()
+        self._replication_offset = 0
 
     def get_database(self, db_index: int) -> RedisDatabase:
         return self._databases[db_index]
@@ -67,7 +68,7 @@ class RedisServer:
 
     @property
     def replication_offset(self) -> int:
-        return 0
+        return self._replication_offset
 
     @property
     def role(self) -> Literal['master', 'slave']:
@@ -105,6 +106,9 @@ class RedisServer:
                         '524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2')
                     await conn.write(f'${len(empty_rdb)}\r\n'.encode() + empty_rdb)
                     self._replicas.add(conn)
+
+                if conn is self._master:
+                    self._replication_offset += len(command.to_resp_array().encode())
 
     async def _handshake_with_master(self) -> None:
         ping = PingCommand()

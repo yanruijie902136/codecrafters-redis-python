@@ -82,7 +82,7 @@ class ReplconfCommand(RedisCommand):
 
     async def execute(self, conn: RedisConnection) -> RespValue:
         if self.args[0] == 'GETACK':
-            return ReplconfCommand(args=['ACK', '0']).to_resp_array()
+            return ReplconfCommand(args=['ACK', str(conn.server.replication_offset)]).to_resp_array()
         return RespSimpleString('OK')
 
     def to_resp_array(self) -> RespArray:
