@@ -59,7 +59,7 @@ class RedisServer:
 
             tg.create_task(server.serve_forever())
 
-    async def wait(self, num_replicas: int, timeout: int) -> int:
+    async def wait(self, num_replicas: int, timeout_ms: int) -> int:
         replconf = ReplconfCommand(args=['GETACK', '*'])
         num_acked_replicas = 0
 
@@ -71,7 +71,7 @@ class RedisServer:
                 nonlocal num_acked_replicas
                 num_acked_replicas += 1
 
-        delay = timeout / 1000 if timeout else None
+        delay = timeout_ms / 1000 if timeout_ms else None
         try:
             async with asyncio.timeout(delay):
                 if self._target_replication_offset == 0:

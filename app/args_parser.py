@@ -29,6 +29,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     'REPLCONF': ReplconfCommand,
     'RPUSH': RpushCommand,
     'SET': SetCommand,
+    'SUBSCRIBE': SubscribeCommand,
     'TYPE': TypeCommand,
     'WAIT': WaitCommand,
     'XADD': XaddCommand,
