@@ -94,7 +94,7 @@ class RedisServer:
 
                 response = await self._execute(conn, command)
 
-                if conn is not self._master:
+                if conn is not self._master or (isinstance(command, ReplconfCommand) and command.args[0] == 'GETACK'):
                     await conn.write_resp(response)
 
                 if command.is_write_command():
