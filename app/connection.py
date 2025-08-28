@@ -24,12 +24,15 @@ class RedisConnection:
         await self._writer.wait_closed()
 
     async def read_args(self) -> List[bytes]:
-        args = (await resp_decode(self._reader)).to_builtin()
+        args = (await self.read_resp()).to_builtin()
 
         if not isinstance(args, list) or not all(isinstance(arg, bytes) for arg in args):
             raise RuntimeError('Command arguments must be sent as an array of bulk strings')
 
         return args
+
+    async def read_resp(self) -> RespValue:
+        return await resp_decode(self._reader)
 
     async def write_resp(self, value: RespValue) -> None:
         self._writer.write(value.encode())

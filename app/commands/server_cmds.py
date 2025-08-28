@@ -1,4 +1,4 @@
-__all__ = 'ConfigGetCommand', 'InfoCommand'
+__all__ = ('ConfigGetCommand', 'InfoCommand', 'ReplconfCommand')
 
 
 from dataclasses import dataclass
@@ -45,3 +45,18 @@ class InfoCommand(RedisCommand):
         if len(args) != 1:
             raise RuntimeError('INFO command syntax: INFO section')
         return cls(section=args[0].decode())
+
+
+@dataclass(frozen=True)
+class ReplconfCommand(RedisCommand):
+    args: List[str]
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        return RespSimpleString('OK')
+
+    def to_resp_array(self) -> RespArray:
+        return RespArray([RespBulkString('REPLCONF')] + [RespBulkString(arg) for arg in self.args])
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        return cls(args=[arg.decode() for arg in args])

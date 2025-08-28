@@ -29,6 +29,9 @@ class PingCommand(RedisCommand):
     async def execute(self, conn: RedisConnection) -> RespValue:
         return RespSimpleString('PONG')
 
+    def to_resp_array(self) -> RespArray:
+        return RespArray([RespBulkString('PING')])
+
     @classmethod
     def from_args(cls, args: List[bytes]) -> Self:
         if args:

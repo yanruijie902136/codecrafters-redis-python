@@ -3,7 +3,14 @@ import os
 from typing import List, Literal, Optional, TypeAlias, Tuple
 
 from .args_parser import parse_args_to_command
-from .commands import DiscardCommand, ExecCommand, MultiCommand, RedisCommand
+from .commands import (
+    DiscardCommand,
+    ExecCommand,
+    MultiCommand,
+    PingCommand,
+    RedisCommand,
+    ReplconfCommand,
+)
 from .connection import RedisConnection
 from .database import RedisDatabase, rdb_parse
 from .protocol import *
@@ -38,7 +45,7 @@ class RedisServer:
             master_host, master_port = self._master_addr
             reader, writer = await asyncio.open_connection(master_host, master_port)
             master = RedisConnection(reader, writer, server=self)
-            await master.write_resp(RespArray([RespBulkString('PING')]))
+            await self._handshake_with_master(master)
 
         server = await asyncio.start_server(self._client_connected_cb, 'localhost', self._port, reuse_port=True)
         async with server:
@@ -71,6 +78,19 @@ class RedisServer:
             return RespSimpleString('QUEUED')
 
         return await command.execute(conn)
+
+    async def _handshake_with_master(self, master: RedisConnection) -> None:
+        ping = PingCommand()
+        await master.write_resp(ping.to_resp_array())
+        await master.read_resp()
+
+        replconf1 = ReplconfCommand(args=['listening-port', str(self._port)])
+        await master.write_resp(replconf1.to_resp_array())
+        await master.read_resp()
+
+        replconf2 = ReplconfCommand(args=['capa', 'psync2'])
+        await master.write_resp(replconf2.to_resp_array())
+        await master.read_resp()
 
     def _load_databases(self) -> List[RedisDatabase]:
         path = os.path.join(self._config.get('dir'), self._config.get('dbfilename'))
