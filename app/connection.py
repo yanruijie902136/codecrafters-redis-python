@@ -31,6 +31,11 @@ class RedisConnection:
 
         return args
 
+    async def read_rdb(self) -> None:
+        assert await self._reader.readexactly(1) == b'$'
+        length = int(await self._reader.readuntil(b'\r\n'))
+        await self._reader.readexactly(length)
+
     async def read_resp(self) -> RespValue:
         return await resp_decode(self._reader)
 

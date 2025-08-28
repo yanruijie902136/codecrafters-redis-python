@@ -93,7 +93,9 @@ class RedisServer:
                 print(f'Received command from {conn.addr}: {command!r}')
 
                 response = await self._execute(conn, command)
-                await conn.write_resp(response)
+
+                if conn is not self._master:
+                    await conn.write_resp(response)
 
                 if command.is_write_command():
                     await self._propagate_command(command)
@@ -120,6 +122,8 @@ class RedisServer:
         psync = PsyncCommand(replication_id='?', offset=-1)
         await self._master.write_resp(psync.to_resp_array())
         await self._master.read_resp()
+
+        await self._master.read_rdb()
 
     def _load_databases(self) -> List[RedisDatabase]:
         path = os.path.join(self._config.get('dir'), self._config.get('dbfilename'))
