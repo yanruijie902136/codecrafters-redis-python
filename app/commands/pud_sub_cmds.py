@@ -15,8 +15,11 @@ class SubscribeCommand(RedisCommand):
     channel: str
 
     async def execute(self, conn: RedisConnection) -> RespValue:
+        conn.subscribe(self.channel)
         return RespArray([
-            RespBulkString('subscribe'), RespBulkString(self.channel), RespInteger(1),
+            RespBulkString('subscribe'),
+            RespBulkString(self.channel),
+            RespInteger(conn.num_subbed_channels),
         ])
 
     @classmethod

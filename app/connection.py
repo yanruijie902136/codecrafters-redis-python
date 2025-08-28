@@ -1,6 +1,6 @@
 import asyncio
 from types import TracebackType
-from typing import TYPE_CHECKING, List, Optional, Self, Tuple, Type
+from typing import TYPE_CHECKING, List, Optional, Self, Set, Tuple, Type
 
 from .database import RedisDatabase
 from .protocol import RespValue, resp_decode
@@ -18,6 +18,8 @@ class RedisConnection:
 
         self._host, self._port, *_ = writer.get_extra_info('peername')
         self._transaction = RedisTransaction(conn=self)
+
+        self._subbed_channels: Set[str] = set()
 
     async def close(self) -> None:
         self._writer.close()
@@ -39,6 +41,9 @@ class RedisConnection:
     async def read_resp(self) -> RespValue:
         return await resp_decode(self._reader)
 
+    def subscribe(self, channel: str) -> None:
+        self._subbed_channels.add(channel)
+
     async def write(self, data: bytes) -> None:
         self._writer.write(data)
         await self._writer.drain()
@@ -53,6 +58,10 @@ class RedisConnection:
     @property
     def database(self) -> RedisDatabase:
         return self._server.get_database(0)
+
+    @property
+    def num_subbed_channels(self) -> int:
+        return len(self._subbed_channels)
 
     @property
     def server(self) -> 'RedisServer':
