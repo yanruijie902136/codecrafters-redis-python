@@ -1,6 +1,6 @@
 import asyncio
 import os
-from typing import List, Optional
+from typing import List, Literal, Optional, TypeAlias, Tuple
 
 from .args_parser import parse_args_to_command
 from .commands import DiscardCommand, ExecCommand, MultiCommand, RedisCommand
@@ -20,11 +20,15 @@ class RedisServerConfig:
         return self._params.get(param)
 
 
+_Address: TypeAlias = Tuple[str, int]
+
+
 class RedisServer:
-    def __init__(self, port: int, config: RedisServerConfig) -> None:
+    def __init__(self, port: int, config: RedisServerConfig, master_addr: Optional[_Address] = None) -> None:
         self._port = port
         self._config = config
         self._databases = self._load_databases()
+        self._master_addr = master_addr
 
     def get_database(self, db_index: int) -> RedisDatabase:
         return self._databases[db_index]
@@ -37,6 +41,10 @@ class RedisServer:
     @property
     def config(self) -> RedisServerConfig:
         return self._config
+
+    @property
+    def role(self) -> Literal['master', 'slave']:
+        return 'master' if self._master_addr is None else 'slave'
 
     async def _client_connected_cb(self, reader: asyncio.StreamReader, writer: asyncio.StreamWriter) -> None:
         conn = RedisConnection(reader, writer, server=self)
