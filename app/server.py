@@ -63,6 +63,10 @@ class RedisServer:
         return self._config
 
     @property
+    def num_replicas(self) -> int:
+        return len(self._replicas)
+
+    @property
     def replication_id(self) -> str:
         return '8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb'
 
