@@ -1,4 +1,4 @@
-__all__ = 'KeysCommand', 'TypeCommand'
+__all__ = ('KeysCommand', 'TypeCommand', 'WaitCommand')
 
 
 from dataclasses import dataclass
@@ -57,3 +57,18 @@ class TypeCommand(RedisCommand):
         if len(args) != 1:
             raise RuntimeError('TYPE command syntax: TYPE key')
         return cls(key=args[0])
+
+
+@dataclass(frozen=True)
+class WaitCommand(RedisCommand):
+    num_replicas: int
+    timeout: int
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        return RespInteger(0)
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 2:
+            raise RuntimeError('WAIT command syntax: WAIT numreplicas timeout')
+        return cls(num_replicas=int(args[0]), timeout=int(args[1]))

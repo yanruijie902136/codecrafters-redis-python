@@ -30,6 +30,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     'RPUSH': RpushCommand,
     'SET': SetCommand,
     'TYPE': TypeCommand,
+    'WAIT': WaitCommand,
     'XADD': XaddCommand,
     'XRANGE': XrangeCommand,
     'XREAD': XreadCommand,
