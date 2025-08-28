@@ -3,7 +3,7 @@ import os
 from typing import List, Optional
 
 from .args_parser import parse_args_to_command
-from .commands import ExecCommand, MultiCommand, RedisCommand
+from .commands import DiscardCommand, ExecCommand, MultiCommand, RedisCommand
 from .connection import RedisConnection
 from .database import RedisDatabase, rdb_parse
 from .protocol import RespSimpleString, RespValue
@@ -51,7 +51,7 @@ class RedisServer:
                 await conn.write_response(response)
 
     async def _execute(self, conn: RedisConnection, command: RedisCommand) -> RespValue:
-        if conn.transaction.active and not isinstance(command, (ExecCommand, MultiCommand)):
+        if conn.transaction.active and not isinstance(command, (DiscardCommand, ExecCommand, MultiCommand)):
             conn.transaction.enqueue(command)
             return RespSimpleString('QUEUED')
 

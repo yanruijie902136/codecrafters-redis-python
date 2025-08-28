@@ -13,6 +13,11 @@ class RedisTransaction:
         self._active = False
         self._commands: List['RedisCommand'] = []
 
+    def discard(self) -> None:
+        if not self._active:
+            raise RuntimeError
+        self._active = False
+
     def enqueue(self, command: 'RedisCommand') -> None:
         if not self._active:
             raise RuntimeError

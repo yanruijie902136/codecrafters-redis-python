@@ -1,4 +1,4 @@
-__all__ = ('ExecCommand', 'MultiCommand')
+__all__ = ('DiscardCommand', 'ExecCommand', 'MultiCommand')
 
 
 from dataclasses import dataclass
@@ -8,6 +8,22 @@ from ..connection import RedisConnection
 from ..protocol import *
 
 from .base import RedisCommand
+
+
+@dataclass(frozen=True)
+class DiscardCommand(RedisCommand):
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        try:
+            conn.transaction.discard()
+            return RespSimpleString('OK')
+        except RuntimeError:
+            return RespSimpleError('ERR DISCARD without MULTI')
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if args:
+            raise RuntimeError('DISCARD command syntax: DISCARD')
+        return cls()
 
 
 @dataclass(frozen=True)
