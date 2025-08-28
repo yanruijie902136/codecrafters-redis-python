@@ -57,6 +57,14 @@ class RedisServer:
         return self._config
 
     @property
+    def replication_id(self) -> str:
+        return '8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb'
+
+    @property
+    def replication_offset(self) -> int:
+        return 0
+
+    @property
     def role(self) -> Literal['master', 'slave']:
         return 'master' if self._master_addr is None else 'slave'
 

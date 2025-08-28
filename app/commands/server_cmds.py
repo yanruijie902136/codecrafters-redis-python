@@ -39,10 +39,11 @@ class InfoCommand(RedisCommand):
     section: str
 
     async def execute(self, conn: RedisConnection) -> RespValue:
+        server = conn.server
         return RespBulkString(
-            f'role:{conn.server.role}\r\n'
-            'master_replid:8371b4fb1155b71f4a04d3e1bc3e18c4a990aeeb\r\n'
-            'master_repl_offset:0'
+            f'role:{server.role}\r\n'
+            f'master_replid:{server.replication_id}\r\n'
+            f'master_repl_offset:{server.replication_offset}'
         )
 
     @classmethod
@@ -58,7 +59,8 @@ class PsyncCommand(RedisCommand):
     offset: int
 
     async def execute(self, conn: RedisConnection) -> RespValue:
-        raise NotImplementedError
+        server = conn.server
+        return RespSimpleString(f'FULLRESYNC {server.replication_id} {server.replication_offset}')
 
     def to_resp_array(self) -> RespArray:
         return RespArray([
