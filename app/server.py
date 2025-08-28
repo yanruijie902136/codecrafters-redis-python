@@ -6,7 +6,7 @@ from .args_parser import parse_args_to_command
 from .commands import DiscardCommand, ExecCommand, MultiCommand, RedisCommand
 from .connection import RedisConnection
 from .database import RedisDatabase, rdb_parse
-from .protocol import RespSimpleString, RespValue
+from .protocol import *
 
 
 class RedisServerConfig:
@@ -34,6 +34,12 @@ class RedisServer:
         return self._databases[db_index]
 
     async def run(self) -> None:
+        if self._master_addr is not None:
+            master_host, master_port = self._master_addr
+            reader, writer = await asyncio.open_connection(master_host, master_port)
+            master = RedisConnection(reader, writer, server=self)
+            await master.write_resp(RespArray([RespBulkString('PING')]))
+
         server = await asyncio.start_server(self._client_connected_cb, 'localhost', self._port, reuse_port=True)
         async with server:
             await server.serve_forever()
@@ -57,7 +63,7 @@ class RedisServer:
                 print(f'Received command from {conn.addr}: {command!r}')
 
                 response = await self._execute(conn, command)
-                await conn.write_response(response)
+                await conn.write_resp(response)
 
     async def _execute(self, conn: RedisConnection, command: RedisCommand) -> RespValue:
         if conn.transaction.active and not isinstance(command, (DiscardCommand, ExecCommand, MultiCommand)):

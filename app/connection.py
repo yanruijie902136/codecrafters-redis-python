@@ -31,8 +31,8 @@ class RedisConnection:
 
         return args
 
-    async def write_response(self, response: RespValue) -> None:
-        self._writer.write(response.encode())
+    async def write_resp(self, value: RespValue) -> None:
+        self._writer.write(value.encode())
         await self._writer.drain()
 
     @property
