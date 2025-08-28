@@ -13,6 +13,9 @@ class RedisCommand(ABC):
     async def execute(self, conn: RedisConnection) -> RespValue:
         raise NotImplementedError
 
+    def is_write_command(self) -> bool:
+        return False
+
     def to_resp_array(self) -> RespArray:
         raise NotImplementedError
 

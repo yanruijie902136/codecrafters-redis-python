@@ -71,6 +71,15 @@ class SetCommand(RedisCommand):
             database.set(self.key, RedisString(self.value), expiry)
             return RespSimpleString('OK')
 
+    def is_write_command(self) -> bool:
+        return True
+
+    def to_resp_array(self) -> RespArray:
+        bulk_strs = [RespBulkString('SET'), RespBulkString(self.key), RespBulkString(self.value)]
+        if self.px is not None:
+            bulk_strs += [RespBulkString('PX'), RespBulkString(str(self.px))]
+        return RespArray(bulk_strs)
+
     @classmethod
     def from_args(cls, args: List[bytes]) -> Self:
         if len(args) == 2:
