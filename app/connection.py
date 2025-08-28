@@ -34,9 +34,12 @@ class RedisConnection:
     async def read_resp(self) -> RespValue:
         return await resp_decode(self._reader)
 
-    async def write_resp(self, value: RespValue) -> None:
-        self._writer.write(value.encode())
+    async def write(self, data: bytes) -> None:
+        self._writer.write(data)
         await self._writer.drain()
+
+    async def write_resp(self, value: RespValue) -> None:
+        await self.write(value.encode())
 
     @property
     def addr(self) -> Tuple[str, int]:
