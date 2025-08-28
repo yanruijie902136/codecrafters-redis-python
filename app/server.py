@@ -39,6 +39,7 @@ class RedisServer:
         self._master = None
         self._replicas: Set[RedisConnection] = set()
         self._replication_offset = 0
+        self._target_replication_offset = 0
 
     def get_database(self, db_index: int) -> RedisDatabase:
         return self._databases[db_index]
@@ -58,13 +59,36 @@ class RedisServer:
 
             tg.create_task(server.serve_forever())
 
+    async def wait(self, num_replicas: int, timeout: int) -> int:
+        replconf = ReplconfCommand(args=['GETACK', '*'])
+        num_acked_replicas = 0
+
+        async def _wait_for_ack(replica: RedisConnection) -> None:
+            await replica.write_resp(replconf.to_resp_array())
+            response = await replica.read_resp()
+            offset = int(response.to_builtin()[2])
+            if offset >= self._target_replication_offset:
+                nonlocal num_acked_replicas
+                num_acked_replicas += 1
+
+        delay = timeout / 1000 if timeout else None
+        try:
+            async with asyncio.timeout(delay):
+                if self._target_replication_offset == 0:
+                    return len(self._replicas)
+
+                async with asyncio.TaskGroup() as tg:
+                    for replica in self._replicas:
+                        tg.create_task(_wait_for_ack(replica))
+
+        except TimeoutError:
+            pass
+
+        return num_acked_replicas
+
     @property
     def config(self) -> RedisServerConfig:
         return self._config
-
-    @property
-    def num_replicas(self) -> int:
-        return len(self._replicas)
 
     @property
     def replication_id(self) -> str:
@@ -91,7 +115,7 @@ class RedisServer:
     async def _handle_connection(self, conn: RedisConnection) -> None:
         print(f'Accepted connection from {conn.addr}')
 
-        async with conn:
+        try:
             while True:
                 args = await conn.read_args()
                 command = parse_args_to_command(args)
@@ -110,9 +134,13 @@ class RedisServer:
                         '524544495330303131fa0972656469732d76657205372e322e30fa0a72656469732d62697473c040fa056374696d65c26d08bc65fa08757365642d6d656dc2b0c41000fa08616f662d62617365c000fff06e3bfec0ff5aa2')
                     await conn.write(f'${len(empty_rdb)}\r\n'.encode() + empty_rdb)
                     self._replicas.add(conn)
+                    return
 
                 if conn is self._master:
                     self._replication_offset += len(command.to_resp_array().encode())
+
+        except asyncio.IncompleteReadError:
+            await conn.close()
 
     async def _handshake_with_master(self) -> None:
         ping = PingCommand()
@@ -141,5 +169,7 @@ class RedisServer:
             return [RedisDatabase() for _ in range(16)]
 
     async def _propagate_command(self, command: RedisCommand) -> None:
+        data = command.to_resp_array().encode()
         for replica in self._replicas:
-            await replica.write_resp(command.to_resp_array())
+            await replica.write(data)
+        self._target_replication_offset += len(data)

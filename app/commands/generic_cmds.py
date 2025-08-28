@@ -65,7 +65,7 @@ class WaitCommand(RedisCommand):
     timeout: int
 
     async def execute(self, conn: RedisConnection) -> RespValue:
-        return RespInteger(conn.server.num_replicas)
+        return RespInteger(await conn.server.wait(self.num_replicas, self.timeout))
 
     @classmethod
     def from_args(cls, args: List[bytes]) -> Self:
