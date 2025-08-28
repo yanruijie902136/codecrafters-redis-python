@@ -4,7 +4,7 @@ __all__ = ('PublishCommand', 'SubscribeCommand')
 from dataclasses import dataclass
 from typing import List, Self
 
-from ..channel import count_subbed_channels, count_subscribers, subscribe
+from ..channel import count_subbed_channels, count_subscribers, publish, subscribe
 from ..connection import RedisConnection
 from ..protocol import *
 
@@ -17,6 +17,7 @@ class PublishCommand(RedisCommand):
     message: str
 
     async def execute(self, conn: RedisConnection) -> RespValue:
+        await publish(self.channel, self.message)
         return RespInteger(count_subscribers(self.channel))
 
     @classmethod
