@@ -8,6 +8,7 @@ from .commands import (
     ExecCommand,
     MultiCommand,
     PingCommand,
+    PsyncCommand,
     RedisCommand,
     ReplconfCommand,
 )
@@ -90,6 +91,10 @@ class RedisServer:
 
         replconf2 = ReplconfCommand(args=['capa', 'psync2'])
         await master.write_resp(replconf2.to_resp_array())
+        await master.read_resp()
+
+        psync = PsyncCommand(replication_id='?', offset=-1)
+        await master.write_resp(psync.to_resp_array())
         await master.read_resp()
 
     def _load_databases(self) -> List[RedisDatabase]:

@@ -1,4 +1,9 @@
-__all__ = ('ConfigGetCommand', 'InfoCommand', 'ReplconfCommand')
+__all__ = (
+    'ConfigGetCommand',
+    'InfoCommand',
+    'PsyncCommand',
+    'ReplconfCommand',
+)
 
 
 from dataclasses import dataclass
@@ -45,6 +50,28 @@ class InfoCommand(RedisCommand):
         if len(args) != 1:
             raise RuntimeError('INFO command syntax: INFO section')
         return cls(section=args[0].decode())
+
+
+@dataclass(frozen=True)
+class PsyncCommand(RedisCommand):
+    replication_id: str
+    offset: int
+
+    async def execute(self, conn: RedisConnection) -> RespValue:
+        raise NotImplementedError
+
+    def to_resp_array(self) -> RespArray:
+        return RespArray([
+            RespBulkString('PSYNC'),
+            RespBulkString(self.replication_id),
+            RespBulkString(str(self.offset)),
+        ])
+
+    @classmethod
+    def from_args(cls, args: List[bytes]) -> Self:
+        if len(args) != 2:
+            raise RuntimeError('PSYNC command syntax: PSYNC replication_id offset')
+        return cls(replication_id=args[0].decode(), offset=int(args[1]))
 
 
 @dataclass(frozen=True)
