@@ -60,6 +60,10 @@ class RedisConnection:
         return self._server.get_database(0)
 
     @property
+    def has_subbed(self) -> bool:
+        return self.num_subbed_channels > 0
+
+    @property
     def num_subbed_channels(self) -> int:
         return len(self._subbed_channels)
 
