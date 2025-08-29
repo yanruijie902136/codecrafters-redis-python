@@ -18,7 +18,12 @@ class GeoaddCommand(RedisCommand):
     member: bytes
 
     async def execute(self, conn: RedisConnection) -> RespValue:
+        if not self._is_valid_args():
+            return RespSimpleError('ERR invalid longitude or latitude')
         return RespInteger(1)
+
+    def _is_valid_args(self) -> bool:
+        return -180 <= self.longitude <= 180 and -85.05112878 <= self.latitude <= 85.05112878
 
     @classmethod
     def from_args(cls, args: List[bytes]) -> Self:
