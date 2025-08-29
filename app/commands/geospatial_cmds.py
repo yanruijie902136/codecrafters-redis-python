@@ -8,6 +8,11 @@ from ..connection import RedisConnection
 from ..protocol import *
 
 from .base import RedisCommand
+from .sorted_set_cmds import ZaddCommand
+
+
+def _compute_score(longitude: float, latitude: float) -> float:
+    return 0.0
 
 
 @dataclass(frozen=True)
@@ -20,7 +25,13 @@ class GeoaddCommand(RedisCommand):
     async def execute(self, conn: RedisConnection) -> RespValue:
         if not self._is_valid_args():
             return RespSimpleError('ERR invalid longitude or latitude')
-        return RespInteger(1)
+
+        score = _compute_score(self.longitude, self.latitude)
+        zadd = ZaddCommand(
+            key=self.key,
+            score_member_pairs=[(score, self.member)],
+        )
+        return await zadd.execute(conn)
 
     def _is_valid_args(self) -> bool:
         return -180 <= self.longitude <= 180 and -85.05112878 <= self.latitude <= 85.05112878
