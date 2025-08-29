@@ -15,6 +15,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     'DISCARD': DiscardCommand,
     'ECHO': EchoCommand,
     'EXEC': ExecCommand,
+    'GEOADD': GeoaddCommand,
     'GET': GetCommand,
     'INCR': IncrCommand,
     'INFO': InfoCommand,

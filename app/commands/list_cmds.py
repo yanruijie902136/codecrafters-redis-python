@@ -32,7 +32,7 @@ class BlpopCommand(RedisCommand):
         async with database.lock:
             lst = await database.wait_for(self.key, _blpop_predicate, timeout=self.timeout)
             if lst is None:
-                return RespNullBulkString
+                return RespNullArray
 
             popped = lst.lpop()
             if not lst:

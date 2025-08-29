@@ -1,6 +1,7 @@
 from .base import *
 from .connection_cmds import *
 from .generic_cmds import *
+from .geospatial_cmds import *
 from .list_cmds import *
 from .pud_sub_cmds import *
 from .server_cmds import *
@@ -13,6 +14,7 @@ from .transaction_cmds import *
 __all__ = (base.__all__ +
            connection_cmds.__all__ +
            generic_cmds.__all__ +
+           geospatial_cmds.__all__ +
            list_cmds.__all__ +
            pud_sub_cmds.__all__ +
            server_cmds.__all__ +

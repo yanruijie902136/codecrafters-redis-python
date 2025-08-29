@@ -166,7 +166,7 @@ class XreadCommand(RedisCommand):
 
         stream = await database.wait_for(key, predicate, timeout=self.block_ms / 1000)
         if stream is None:
-            return RespNullBulkString
+            return RespNullArray
         return RespArray([_key_and_entries_to_resp_array(key, stream.read(start_id))])
 
     def _no_block(self, database: RedisDatabase) -> RespValue:
