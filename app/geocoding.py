@@ -1,3 +1,6 @@
+from typing import Tuple
+
+
 _MIN_LATITUDE = -85.05112878
 _MAX_LATITUDE = 85.05112878
 _MIN_LONGITUDE = -180
@@ -9,6 +12,10 @@ _LONGITUDE_RANGE = _MAX_LONGITUDE - _MIN_LONGITUDE
 
 def is_valid_location(longitude: float, latitude: float) -> bool:
     return _MIN_LONGITUDE <= longitude <= _MAX_LONGITUDE and _MIN_LATITUDE <= latitude <= _MAX_LATITUDE
+
+
+def compute_location(score: int) -> Tuple[float, float]:
+    return 0, 0
 
 
 def compute_score(longitude: float, latitude: float) -> int:

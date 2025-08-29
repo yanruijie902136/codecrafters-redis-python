@@ -16,6 +16,7 @@ _COMMAND_CLASSES: _NestedLookup = {
     'ECHO': EchoCommand,
     'EXEC': ExecCommand,
     'GEOADD': GeoaddCommand,
+    'GEOPOS': GeoposCommand,
     'GET': GetCommand,
     'INCR': IncrCommand,
     'INFO': InfoCommand,
